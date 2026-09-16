@@ -416,6 +416,37 @@
     .teach-button { min-height:45px; padding:7px; border:1px solid rgba(159,52,39,.3); color:var(--cinnabar-dark); background:#fffaf0; cursor:pointer; font:700 14px/1.25 "STKaiti","KaiTi",serif; }
     .teach-button.done { color:#fff; border-color:#315d4e; background:#315d4e; }
     .teach-button:disabled { opacity:.48; cursor:not-allowed; }
+    .teach-views { margin-top:11px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+    .teach-view-button { min-height:38px; padding:6px 8px; border:1px solid rgba(23,51,47,.15); color:var(--ink-soft); background:rgba(255,253,248,.72); cursor:pointer; font-weight:800; }
+    .teach-view-button b { margin-left:5px; color:inherit; }
+    .teach-view-button[data-teach-view="success"].active { color:#fff; border-color:#315d4e; background:#315d4e; }
+    .teach-view-button[data-teach-view="failure"].active { color:#fff; border-color:#8d3428; background:#8d3428; }
+    .teach-execute { width:100%; min-height:48px; margin-top:11px; border:1px solid #315d4e; color:#fff; background:#315d4e; cursor:pointer; font:700 17px/1.2 "STKaiti","KaiTi",serif; box-shadow:0 8px 18px rgba(23,51,47,.12); }
+    .teach-execute:disabled { color:#7c6d5c; border-color:rgba(23,51,47,.18); background:#e7deca; cursor:not-allowed; box-shadow:none; }
+    .teach-detail { min-height:88px; margin-top:8px; padding:10px; border:1px solid rgba(23,51,47,.11); background:rgba(255,253,248,.76); color:var(--ink-soft); font-size:12px; line-height:1.6; }
+    .teach-log { margin:0; padding:0; list-style:none; }
+    .teach-log li { padding:6px 0; border-bottom:1px dotted rgba(23,51,47,.13); }
+    .teach-log li:last-child { border-bottom:0; }
+    .teach-log strong { display:block; color:var(--ink); }
+    .trajectory-warning { margin:0 0 9px; padding:8px 9px; border-left:3px solid var(--gold); background:rgba(224,210,180,.32); }
+    .trajectory-warning.good { border-left-color:#315d4e; }
+    .trajectory-list { margin:0; padding:0; list-style:none; counter-reset:traj; }
+    .trajectory-list li { position:relative; margin-left:10px; padding:5px 0 5px 20px; border-left:1px solid rgba(159,52,39,.28); }
+    .trajectory-list li::before { content:""; position:absolute; left:-5px; top:12px; width:9px; height:9px; border-radius:50%; background:var(--cinnabar); }
+    .trajectory-list li.missing::before { background:#a28f75; }
+    .trajectory-list small { display:block; color:var(--ink-soft); word-break:break-all; }
+    .command-panel { margin-top:15px; padding:16px; border:1px solid rgba(23,51,47,.18); background:rgba(236,229,208,.52); }
+    .command-head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+    .command-head strong { font:700 18px/1.2 "STKaiti","KaiTi",serif; }
+    .command-head span { color:var(--ink-soft); font-size:12px; }
+    .command-note { margin:7px 0 9px; color:var(--ink-soft); font-size:12px; line-height:1.6; }
+    .command-code { max-height:130px; margin:0; padding:10px; overflow:auto; border:1px solid rgba(23,51,47,.15); color:#e9dfc8; background:#172521; font:12px/1.55 Consolas,"Courier New",monospace; white-space:pre-wrap; word-break:break-all; }
+    .command-actions { margin-top:8px; display:grid; grid-template-columns:1fr; gap:7px; }
+    .command-actions button { min-height:40px; padding:0 10px; border:1px solid rgba(23,51,47,.18); color:var(--ink); background:#fffaf0; cursor:pointer; font-weight:800; }
+    .command-actions button:disabled { opacity:.48; cursor:not-allowed; }
+    .ros2-details { margin-top:9px; color:var(--ink-soft); font-size:12px; }
+    .ros2-details summary { cursor:pointer; color:var(--cinnabar-dark); font-weight:800; }
+    .ros2-details .command-code { margin-top:7px; max-height:240px; }
     .stream-frame { position:relative; aspect-ratio:16/9; overflow:hidden; background:#15231f; }
     .stream-frame img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
     .stream-placeholder { position:absolute; inset:0; display:grid; place-items:center; padding:28px; color:#e7dcc0; text-align:center; line-height:1.7; }
@@ -609,14 +640,28 @@
       <div class="robot-console-grid">
         <div class="robot-control">
           <label for="robotPointSelect">选择演示穴位</label>
-          <div class="robot-form"><select id="robotPointSelect"><option value="GV14">大椎 · GV14</option><option value="SI11-L">左天宗 · SI11-L</option><option value="SI11-R">右天宗 · SI11-R</option><option value="BL23-L">左肾俞 · BL23-L</option><option value="BL23-R">右肾俞 · BL23-R</option></select><button id="robotExecute" type="button" disabled>等待安全检查</button></div>
+          <div class="robot-form"><select id="robotPointSelect"><option value="GV14">大椎 · GV14</option><option value="SI11-L">左天宗 · SI11-L</option><option value="SI11-R">右天宗 · SI11-R</option><option value="BL23-L">左肾俞 · BL23-L</option><option value="BL23-R">右肾俞 · BL23-R</option></select></div>
           <div class="robot-status" id="robotStatus">正在寻找本机视觉与机械臂服务……</div>
           <section class="connection-panel" aria-labelledby="connectionTitle">
             <div class="connection-head"><strong id="connectionTitle">真机连接检查</strong><span>只读检查，不发送运动</span></div>
             <div class="connection-grid"><div class="connection-item" id="checkLocal">本机穴位服务</div><div class="connection-item" id="checkVision">AprilTag 定位</div><div class="connection-item" id="checkBridge">8766 动作桥</div><div class="connection-item" id="checkArm">左臂关节与 Arm_Tip</div></div>
             <div class="robot-safety-actions"><button id="robotPreflight" type="button">检查机器人连接</button><button class="emergency" id="robotEmergency" type="button" disabled>紧急停止</button></div>
           </section>
-          <section class="teach-panel" aria-labelledby="teachTitle"><div class="teach-head"><strong id="teachTitle">关键帧示教</strong><span>当前所选穴位</span></div><p>由现场人员把左臂调整到对应姿态，再点击记录；绿色表示该帧已经保存，再次点击可覆盖。</p><div class="teach-grid"><button class="teach-button" data-keyframe="approach" type="button">记录接近位</button><button class="teach-button" data-keyframe="target" type="button">记录指向位</button><button class="teach-button" data-keyframe="retreat" type="button">记录撤离位</button></div></section>
+          <section class="teach-panel" aria-labelledby="teachTitle">
+            <div class="teach-head"><strong id="teachTitle">关键帧示教</strong><span>当前所选穴位</span></div>
+            <p>依次记录接近、指向、撤离三个姿态；绿色表示已经落盘，再次点击可覆盖。上场与退场属于后台安全流程，不需要在这里逐步管理。</p>
+            <div class="teach-grid"><button class="teach-button" data-keyframe="approach" type="button">记录接近位</button><button class="teach-button" data-keyframe="target" type="button">记录指向位</button><button class="teach-button" data-keyframe="retreat" type="button">记录撤离位</button></div>
+            <button class="teach-execute" id="robotExecute" type="button" disabled>记录三帧后执行当前穴位</button>
+            <div class="teach-views" role="tablist" aria-label="示教结果视图"><button class="teach-view-button active" data-teach-view="success" type="button">成功 <b id="teachSuccessCount">0</b></button><button class="teach-view-button" data-teach-view="failure" type="button">失败 <b id="teachFailureCount">0</b></button></div>
+            <div class="teach-detail" id="teachDetail" aria-live="polite">连接本机服务后显示关键帧结果。</div>
+          </section>
+          <section class="command-panel" aria-labelledby="commandTitle">
+            <div class="command-head"><strong id="commandTitle">执行信息与 ROS2 命令</strong><span id="commandState">等待三帧</span></div>
+            <p class="command-note">点击上方“一键执行当前穴位”即可运行完整动作；下方命令用于复制或核对三帧示教数据。</p>
+            <pre class="command-code" id="executeCommand">选择并完成一个穴位的三帧示教后生成。</pre>
+            <div class="command-actions"><button id="copyExecuteCommand" type="button" disabled>复制统一执行命令</button></div>
+            <details class="ros2-details"><summary>查看三帧 ROS2 MoveJ 命令</summary><pre class="command-code" id="ros2Commands">尚未生成。</pre></details>
+          </section>
         </div>
         <div class="robot-vision">
           <div class="stream-frame"><img id="robotVideo" alt="Gemini 2 实时穴位画面"><div class="stream-placeholder" id="streamPlaceholder"><div><strong>等待本机视频流</strong>先在机器人电脑启动 FiveFinger 穴位服务；连接后，视频、示教与动作控制都会直接出现在本页。</div></div></div>
@@ -675,6 +720,7 @@
     let pendingVoiceAction = null;
 
     const $ = (id) => document.getElementById(id);
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 
     function renderHotspots() {
       const layer = $('hotspotLayer');
@@ -1031,6 +1077,46 @@
     const localRobotBase = 'http://127.0.0.1:8091';
     let localRobotConnected = false;
     let localRobotStatus = null;
+    let currentTeachView = 'success';
+
+    function formatJoints(joints) {
+      return Array.isArray(joints) ? joints.map(value => Number(value).toFixed(6)).join(', ') : '未记录';
+    }
+
+    function renderTeachDetails(selected, events = []) {
+      const keyframes = selected?.keyframes || [];
+      const taught = keyframes.filter(item => ['approach','target','retreat'].includes(item.name));
+      const successes = taught.filter(item => item.recorded);
+      const failures = events.filter(item => item.point === selected?.code && item.ok === false);
+      $('teachSuccessCount').textContent = successes.length;
+      $('teachFailureCount').textContent = failures.length;
+      document.querySelectorAll('.teach-view-button').forEach(button => button.classList.toggle('active', button.dataset.teachView === currentTeachView));
+
+      if (!selected) {
+        $('teachDetail').textContent = '尚未读取当前穴位流程。';
+        return;
+      }
+      if (currentTeachView === 'failure') {
+        $('teachDetail').innerHTML = failures.length
+          ? `<ul class="teach-log">${failures.slice().reverse().map(item => `<li><strong>${escapeHtml(item.timestamp || '刚刚')} · ${escapeHtml(item.message)}</strong>${item.output ? escapeHtml(item.output) : ''}</li>`).join('')}</ul>`
+          : '<div>当前穴位没有保存失败记录。</div>';
+        return;
+      }
+      $('teachDetail').innerHTML = successes.length
+        ? `<ul class="teach-log">${successes.map(item => `<li><strong>已保存 · ${escapeHtml(item.label)}</strong>${item.recorded_at ? `${escapeHtml(item.recorded_at)}<br>` : ''}<span>关节角：${escapeHtml(formatJoints(item.joints))}</span></li>`).join('')}</ul>`
+        : '<div>还没有成功保存接近位、指向位或撤离位。</div>';
+    }
+
+    function renderCommands(selected) {
+      const command = selected?.execute_command || '';
+      $('executeCommand').textContent = command || '选择并完成一个穴位的三帧示教后生成。';
+      $('copyExecuteCommand').disabled = !command;
+      const taughtCommands = (selected?.keyframes || []).filter(item => ['approach','target','retreat'].includes(item.name) && item.ros2_command);
+      $('ros2Commands').textContent = taughtCommands.length
+        ? taughtCommands.map((item, index) => `# ${index + 1} · ${item.label}\n${item.ros2_command}`).join('\n\n')
+        : '尚未生成。';
+      $('commandState').textContent = !selected ? '等待三帧' : !selected.ready ? `缺少 ${selected.missing?.length || 0} 帧` : selected.trajectory_distinct ? '三帧已就绪' : '三帧需重录';
+    }
 
     function renderRobotStatus(status) {
       localRobotConnected = true;
@@ -1041,11 +1127,16 @@
       const health = bridge.health || {};
       const leftAge = health.joint_state_age_s?.left;
       const armReady = bridge.ok && Number.isFinite(leftAge) && leftAge <= 1 && health.tool_frames?.left === 'Arm_Tip';
-      const ready = Boolean(status.tracking && selected?.ready && action.enabled && !action.running && bridge.ok);
+      const ready = Boolean(status.tracking && selected?.ready && selected?.trajectory_distinct && action.enabled && !action.running && bridge.ok);
       $('robotExecute').disabled = !ready;
-      $('robotExecute').textContent = action.running ? '动作执行中' : '执行动作';
+      $('robotExecute').textContent = action.running ? '当前穴位动作执行中' :
+        !selected?.ready ? '请先记录接近、指向、撤离三帧' :
+        !selected?.trajectory_distinct ? '三帧数据重复，请重新采集' :
+        !bridge.ok ? '先检查机器人连接' :
+        !action.enabled ? '真机执行未启用' :
+        !status.tracking ? '等待 AprilTag 定位稳定' : '一键执行当前穴位完整动作';
       const vision = status.tracking ? `视觉定位稳定（${status.fps} fps）` : '视觉尚未稳定';
-      const taught = selected?.ready ? '该穴位关键帧已就绪' : `待示教：${selected?.missing?.join('、') || '未读取'}`;
+      const taught = selected?.ready ? (selected.trajectory_distinct ? '该穴位关键帧与轨迹已就绪' : selected.trajectory_message) : `待示教：${selected?.missing?.join('、') || '未读取'}`;
       const bridgeText = bridge.checked ? bridge.message : '尚未进行机器人连接检查';
       $('robotStatus').textContent = `${vision}；${taught}；${bridgeText}；${action.message || ''}`;
       const setCheck = (id, label, state) => {
@@ -1065,7 +1156,11 @@
         button.classList.toggle('done', done);
         button.disabled = Boolean(action.running);
         button.textContent = `${done ? '已记录' : '记录'}${labels[button.dataset.keyframe]}`;
+        const frame = selected?.keyframes?.find(item => item.name === button.dataset.keyframe);
+        button.title = frame?.recorded ? `已保存关节角：${formatJoints(frame.joints)}` : '尚未记录';
       });
+      renderTeachDetails(selected, action.events || []);
+      renderCommands(selected);
       $('coordinateList').innerHTML = (status.acupoints || []).map(item => `<div class="coordinate-item"><strong>${item.name} ${item.code}</strong>画面 (${item.x_px}, ${item.y_px})</div>`).join('') || '<div class="coordinate-item"><strong>实时坐标</strong>定位后显示</div>';
       if (!$('robotVideo').src) {
         $('robotVideo').src = `${localRobotBase}/stream.mjpg`;
@@ -1094,6 +1189,10 @@
           button.disabled = false;
           button.classList.remove('done');
         });
+        $('teachSuccessCount').textContent = '0';
+        $('teachFailureCount').textContent = '0';
+        $('teachDetail').textContent = '本机服务尚未连接，无法读取保存结果。';
+        renderCommands(null);
         $('robotStatus').textContent = '尚未发现机器人电脑上的本机服务。启动后，本页会自动接入视频、示教、连接检查与动作控制，无需打开另一张网页。';
       }
     }
@@ -1151,6 +1250,25 @@
       window.setTimeout(refreshRobotBridge, 400);
     };
     $('robotPointSelect').onchange = () => { if (localRobotStatus) renderRobotStatus(localRobotStatus); };
+    document.querySelectorAll('.teach-view-button').forEach(button => button.onclick = () => {
+      currentTeachView = button.dataset.teachView;
+      if (localRobotStatus) renderRobotStatus(localRobotStatus);
+    });
+    $('copyExecuteCommand').onclick = async () => {
+      const text = $('executeCommand').textContent;
+      try {
+        await navigator.clipboard.writeText(text);
+        $('copyExecuteCommand').textContent = '已复制';
+      } catch (_) {
+        const range = document.createRange();
+        range.selectNodeContents($('executeCommand'));
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        $('copyExecuteCommand').textContent = '已选中，请复制';
+      }
+      window.setTimeout(() => { $('copyExecuteCommand').textContent = '复制统一执行命令'; }, 1600);
+    };
     $('robotPreflight').onclick = async () => {
       if (!localRobotConnected) {
         $('robotStatus').textContent = '本机服务尚未连接。请先在机器人电脑启动穴位服务，本页会自动重试。';
