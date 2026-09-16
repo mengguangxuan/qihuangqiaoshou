@@ -771,9 +771,7 @@
       return `现在看到的是${point.name}，国际代码${point.id}，属于${point.channel}。${point.description}${point.meaning}${point.tradition}`;
     }
 
-    function speak(kind = 'overview') {
-      const text = currentNarration(kind);
-      $('agentAnswer').textContent = text;
+    function readTextAloud(text) {
       if (!('speechSynthesis' in window)) {
         $('voiceState').textContent = '当前浏览器不支持语音朗读';
         return;
@@ -789,6 +787,12 @@
       utterance.onend = () => { $('voiceAgent').classList.remove('speaking'); $('voiceState').textContent = '讲解完毕 · 可继续提问'; };
       utterance.onerror = () => { $('voiceAgent').classList.remove('speaking'); $('voiceState').textContent = '朗读暂不可用，请阅读文字'; };
       window.speechSynthesis.speak(utterance);
+    }
+
+    function speak(kind = 'overview') {
+      const text = currentNarration(kind);
+      $('agentAnswer').textContent = text;
+      readTextAloud(text);
     }
 
     function setVoicePhase(label, message, listening = false) {
@@ -872,6 +876,7 @@
       }
       $('voiceReply').textContent = result.reply;
       $('agentAnswer').textContent = result.reply;
+      readTextAloud(result.reply);
       if (result.requires_confirmation && result.proposal?.type === 'execute_acupoint') {
         pendingVoiceAction = result.proposal;
         $('confirmVoiceAction').textContent = `确认让机械臂指向${result.proposal.label}`;
