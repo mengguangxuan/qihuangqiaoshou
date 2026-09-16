@@ -215,6 +215,7 @@
     .view-switch { padding: 4px; display: flex; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.45); }
     .view-btn { min-width: 66px; min-height: 35px; border: 0; border-radius: 999px; color: var(--ink-soft); background: transparent; cursor: pointer; }
     .view-btn.active { color: var(--white); background: var(--cinnabar); }
+    .view-btn:disabled { opacity:.34; cursor:not-allowed; }
 
     .body-stage { position: relative; min-height: 650px; height: auto; flex: 1; margin-top: 4px; padding-top: 28px; display: grid; justify-items: center; align-items: start; overflow: hidden; }
     .mist { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
@@ -661,8 +662,16 @@
 
     function render() {
       const mode = modes[currentMode];
+      const backOnlyMode = ['tap','massage','cupping'].includes(currentMode);
+      if (backOnlyMode) currentView = 'back';
       document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.mode === currentMode));
-      document.querySelectorAll('.view-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.view === currentView));
+      document.querySelectorAll('.view-btn').forEach(btn => {
+        const unavailable = backOnlyMode && btn.dataset.view === 'front';
+        btn.disabled = unavailable;
+        btn.title = unavailable ? '此体验只在背部区域展示' : '';
+        btn.setAttribute('aria-disabled', unavailable ? 'true' : 'false');
+        btn.classList.toggle('active', btn.dataset.view === currentView);
+      });
       $('bodyStage').dataset.view = currentView;
       $('modeIndex').textContent = mode.index;
       $('modeTitle').textContent = mode.title;
@@ -933,7 +942,10 @@
       if (['tap','massage','cupping'].includes(currentMode)) currentView = 'back';
       render();
     });
-    document.querySelectorAll('.view-btn').forEach(btn => btn.onclick = () => { stopPlayback(); currentView = btn.dataset.view; currentIndex = 0; render(); });
+    document.querySelectorAll('.view-btn').forEach(btn => btn.onclick = () => {
+      if (btn.disabled) return;
+      stopPlayback(); currentView = btn.dataset.view; currentIndex = 0; render();
+    });
     document.querySelectorAll('.audience-btn').forEach(btn => btn.onclick = () => {
       currentExperience = btn.dataset.experience;
       document.querySelectorAll('.audience-btn').forEach(item => item.classList.toggle('active', item === btn));
