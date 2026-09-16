@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="岐黄巧手中医文化与康养教学互动平台 UI 原型">
+  <title>岐黄巧手 · 互动教学台</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23152f2b'/%3E%3Ccircle cx='32' cy='32' r='20' fill='none' stroke='%23d9a441' stroke-width='3'/%3E%3Cpath d='M20 32h24M32 20v24' stroke='%23f6efe1' stroke-width='3' stroke-linecap='round'/%3E%3Ccircle cx='32' cy='32' r='5' fill='%23b84635'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --paper: #f3eddf;
+      --paper-deep: #e7ddca;
+      --ink: #17332f;
+      --ink-soft: #49635e;
+      --cinnabar: #b84635;
+      --cinnabar-dark: #833226;
+      --gold: #c9973e;
+      --gold-soft: #ecd7a3;
+      --jade: #3d7269;
+      --white: #fffdf8;
+      --line: rgba(23, 51, 47, .14);
+      --shadow: 0 24px 70px rgba(47, 39, 25, .13);
+      --radius: 26px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 16%, rgba(201,151,62,.13), transparent 25rem),
+        radial-gradient(circle at 88% 84%, rgba(61,114,105,.12), transparent 28rem),
+        linear-gradient(135deg, rgba(255,255,255,.55), transparent 48%),
+        var(--paper);
+      font-family: "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+      line-height: 1.6;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      opacity: .22;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.11'/%3E%3C/svg%3E");
+    }
+
+    button { font: inherit; }
+    button:focus-visible, a:focus-visible { outline: 3px solid rgba(184,70,53,.35); outline-offset: 3px; }
+
+    .shell { width: min(1500px, calc(100% - 40px)); margin: 0 auto; }
+    .topbar {
+      min-height: 82px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand { display: flex; align-items: center; gap: 13px; }
+    .seal {
+      width: 45px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 13px;
+      color: var(--white);
+      background: var(--cinnabar);
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,.24);
+      font-family: "STKaiti", "KaiTi", serif;
+      font-size: 22px;
+      font-weight: 700;
+    }
+    .brand strong { display: block; font-family: "STKaiti", "KaiTi", serif; font-size: 24px; letter-spacing: .08em; }
+    .brand span { display: block; margin-top: -3px; color: var(--ink-soft); font-size: 12px; letter-spacing: .13em; }
+
+    .top-status { display: flex; align-items: center; gap: 12px; color: var(--ink-soft); font-size: 14px; }
+    .signal { width: 9px; height: 9px; border-radius: 50%; background: #3d9668; box-shadow: 0 0 0 6px rgba(61,150,104,.12); }
+    .outline-btn {
+      min-height: 42px;
+      padding: 0 16px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--ink);
+      background: rgba(255,253,248,.45);
+      cursor: pointer;
+    }
+
+    .modebar {
+      margin: 22px 0 18px;
+      padding: 7px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 7px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255,253,248,.55);
+      box-shadow: 0 10px 30px rgba(70,54,28,.05);
+    }
+    .mode-btn {
+      min-height: 48px;
+      border: 0;
+      border-radius: 13px;
+      color: var(--ink-soft);
+      background: transparent;
+      cursor: pointer;
+      transition: .22s ease;
+    }
+    .mode-btn small { display: block; margin-top: -3px; font-size: 11px; opacity: .72; }
+    .mode-btn:hover { color: var(--ink); background: rgba(23,51,47,.055); }
+    .mode-btn.active { color: var(--white); background: var(--ink); box-shadow: 0 10px 24px rgba(23,51,47,.22); }
+
+    .workspace {
+      min-height: calc(100vh - 155px);
+      display: grid;
+      grid-template-columns: minmax(260px, .72fr) minmax(480px, 1.55fr) minmax(285px, .78fr);
+      gap: 18px;
+      padding-bottom: 30px;
+    }
+
+    .panel {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(23,51,47,.12);
+      border-radius: var(--radius);
+      background: rgba(255,253,248,.72);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    .intro { padding: 32px 30px; display: flex; flex-direction: column; }
+    .eyebrow { color: var(--cinnabar); font-size: 13px; font-weight: 800; letter-spacing: .16em; }
+    .intro h1 {
+      margin: 13px 0 16px;
+      font-family: "STKaiti", "KaiTi", serif;
+      font-size: clamp(38px, 4vw, 64px);
+      line-height: 1.05;
+      letter-spacing: .02em;
+    }
+    .intro h1 span { display: block; color: var(--cinnabar); }
+    .lead { margin: 0; color: var(--ink-soft); font-size: 16px; }
+    .mode-copy { margin-top: 30px; padding-top: 24px; border-top: 1px solid var(--line); }
+    .mode-copy .index { color: var(--gold); font: 700 13px/1 ui-monospace, monospace; }
+    .mode-copy h2 { margin: 8px 0 8px; font-size: 24px; }
+    .mode-copy p { margin: 0; color: var(--ink-soft); font-size: 14px; }
+
+    .legend { margin-top: auto; padding-top: 28px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .legend-item { padding: 12px; border-radius: 14px; background: rgba(23,51,47,.045); }
+    .legend-item strong { display: block; font-size: 18px; }
+    .legend-item span { color: var(--ink-soft); font-size: 12px; }
+
+    .stage { min-height: 690px; padding: 20px; background: linear-gradient(160deg, rgba(255,253,248,.8), rgba(228,218,196,.64)); }
+    .stage-head { position: relative; z-index: 5; display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+    .stage-title { display: flex; align-items: center; gap: 9px; color: var(--ink-soft); font-size: 13px; }
+    .view-switch { padding: 4px; display: flex; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.45); }
+    .view-btn { min-width: 66px; min-height: 35px; border: 0; border-radius: 999px; color: var(--ink-soft); background: transparent; cursor: pointer; }
+    .view-btn.active { color: var(--white); background: var(--cinnabar); }
+
+    .body-stage { position: relative; height: 585px; margin-top: 4px; display: grid; place-items: center; }
+    .halo { position: absolute; width: 72%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, rgba(201,151,62,.18), rgba(201,151,62,.04) 55%, transparent 71%); filter: blur(2px); }
+    .body-svg { width: min(380px, 74%); height: 545px; overflow: visible; filter: drop-shadow(0 25px 35px rgba(54,39,18,.14)); }
+    .body-fill { fill: #ead4b8; stroke: rgba(23,51,47,.22); stroke-width: 2; }
+    .body-line { fill: none; stroke: rgba(131,50,38,.28); stroke-width: 2; stroke-linecap: round; }
+    .meridian { fill: none; stroke: rgba(184,70,53,.5); stroke-width: 2.2; stroke-dasharray: 3 8; stroke-linecap: round; }
+    .front-detail, .back-detail { transition: opacity .25s ease; }
+    .body-stage[data-view="back"] .front-detail { opacity: 0; }
+    .body-stage[data-view="front"] .back-detail { opacity: 0; }
+
+    .hotspot {
+      position: absolute;
+      z-index: 6;
+      width: 33px;
+      height: 33px;
+      display: grid;
+      place-items: center;
+      border: 0;
+      border-radius: 50%;
+      color: var(--white);
+      background: var(--cinnabar);
+      box-shadow: 0 0 0 7px rgba(184,70,53,.15), 0 7px 18px rgba(131,50,38,.28);
+      cursor: pointer;
+      transform: translate(-50%, -50%);
+      transition: transform .18s ease, opacity .18s ease, box-shadow .18s ease;
+    }
+    .hotspot:hover, .hotspot.active { transform: translate(-50%, -50%) scale(1.18); box-shadow: 0 0 0 10px rgba(184,70,53,.17), 0 8px 24px rgba(131,50,38,.32); }
+    .hotspot::after { content: attr(data-short); position: absolute; left: 42px; white-space: nowrap; color: var(--ink); font-size: 13px; font-weight: 800; text-shadow: 0 1px 0 var(--white); }
+    .hotspot.left-label::after { left: auto; right: 42px; }
+
+    .layer { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .25s ease; }
+    .layer.visible { opacity: 1; }
+    .tap-zone { position: absolute; top: 31%; width: 16%; height: 27%; border: 2px solid rgba(184,70,53,.5); border-radius: 46% 46% 36% 36%; background: rgba(184,70,53,.14); animation: breathe 1.8s ease-in-out infinite; }
+    .tap-zone.left { left: 33.2%; }
+    .tap-zone.right { right: 33.2%; animation-delay: .5s; }
+    .route-svg { position: absolute; inset: 12% 18%; width: 64%; height: 70%; overflow: visible; }
+    .route { fill: none; stroke: var(--cinnabar); stroke-width: 5; stroke-linecap: round; stroke-dasharray: 10 12; animation: route 1.1s linear infinite; filter: drop-shadow(0 5px 5px rgba(184,70,53,.18)); }
+    .cup-target { position: absolute; width: 58px; height: 58px; border: 3px solid var(--gold); border-radius: 50%; background: rgba(201,151,62,.14); box-shadow: inset 0 0 0 7px rgba(255,253,248,.5); }
+    .cup-target.one { left: 35%; top: 37%; }
+    .cup-target.two { right: 35%; top: 37%; }
+    .cup-target.three { left: calc(50% - 29px); top: 58%; }
+
+    .stage-footer { position: absolute; left: 22px; right: 22px; bottom: 18px; z-index: 8; display: flex; align-items: center; gap: 12px; }
+    .primary-btn {
+      min-height: 50px;
+      padding: 0 22px;
+      border: 0;
+      border-radius: 15px;
+      color: var(--white);
+      background: var(--cinnabar);
+      box-shadow: 0 11px 23px rgba(184,70,53,.25);
+      cursor: pointer;
+    }
+    .progress-wrap { flex: 1; }
+    .progress-meta { margin-bottom: 6px; display: flex; justify-content: space-between; color: var(--ink-soft); font-size: 12px; }
+    .progress { height: 7px; overflow: hidden; border-radius: 999px; background: rgba(23,51,47,.1); }
+    .progress > span { display: block; width: 20%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--gold), var(--cinnabar)); transition: width .35s ease; }
+
+    .detail { padding: 25px; display: flex; flex-direction: column; }
+    .status-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    .status-pill { padding: 6px 10px; border-radius: 999px; color: #2e7656; background: rgba(61,150,104,.11); font-size: 12px; font-weight: 800; }
+    .detail h2 { margin: 22px 0 2px; font-family: "STKaiti", "KaiTi", serif; font-size: 33px; }
+    .code { color: var(--cinnabar); font: 700 13px/1.5 ui-monospace, monospace; letter-spacing: .08em; }
+    .detail-copy { margin: 18px 0 0; color: var(--ink-soft); font-size: 14px; }
+    .facts { margin: 25px 0 0; padding: 0; list-style: none; }
+    .facts li { padding: 13px 0; display: grid; grid-template-columns: 72px 1fr; gap: 13px; border-top: 1px solid var(--line); font-size: 13px; }
+    .facts span { color: var(--ink-soft); }
+    .facts strong { font-weight: 700; }
+
+    .sequence { margin-top: 26px; }
+    .sequence-head { display: flex; justify-content: space-between; color: var(--ink-soft); font-size: 12px; }
+    .steps { margin: 12px 0 0; padding: 0; list-style: none; }
+    .steps li { position: relative; min-height: 42px; padding-left: 30px; color: var(--ink-soft); font-size: 13px; }
+    .steps li::before { content: ""; position: absolute; left: 4px; top: 5px; width: 10px; height: 10px; border: 2px solid rgba(23,51,47,.25); border-radius: 50%; background: var(--white); }
+    .steps li::after { content: ""; position: absolute; left: 9px; top: 19px; bottom: -2px; width: 1px; background: var(--line); }
+    .steps li:last-child::after { display: none; }
+    .steps li.active { color: var(--cinnabar); font-weight: 800; }
+    .steps li.active::before { border-color: var(--cinnabar); background: var(--cinnabar); box-shadow: 0 0 0 5px rgba(184,70,53,.12); }
+
+    .safety { margin-top: auto; padding: 15px; border-radius: 16px; background: var(--ink); color: rgba(255,255,255,.78); font-size: 12px; }
+    .safety strong { display: block; margin-bottom: 4px; color: var(--white); font-size: 13px; }
+
+    .concepts { padding: 76px 0 90px; }
+    .concept-head { max-width: 720px; margin-bottom: 28px; }
+    .concept-head h2 { margin: 8px 0 8px; font-family: "STKaiti", "KaiTi", serif; font-size: clamp(32px, 4vw, 52px); }
+    .concept-head p { color: var(--ink-soft); }
+    .concept-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+    .concept-card { min-height: 210px; padding: 24px; border: 1px solid var(--line); border-radius: 22px; background: rgba(255,253,248,.56); }
+    .concept-card b { display: grid; place-items: center; width: 43px; height: 43px; border-radius: 13px; color: var(--white); background: var(--ink); font-size: 22px; }
+    .concept-card h3 { margin: 22px 0 6px; font-size: 20px; }
+    .concept-card p { margin: 0; color: var(--ink-soft); font-size: 14px; }
+    .boundary { margin-top: 16px; padding: 22px 25px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-radius: 22px; color: var(--white); background: var(--cinnabar-dark); }
+    .boundary strong { font-size: 18px; }
+    .boundary span { color: rgba(255,255,255,.76); font-size: 13px; }
+
+    @keyframes breathe { 50% { transform: scale(1.05); background: rgba(184,70,53,.24); } }
+    @keyframes route { to { stroke-dashoffset: -44; } }
+
+    @media (max-width: 1120px) {
+      .workspace { grid-template-columns: 1fr 1.55fr; }
+      .detail { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+      .detail .safety { grid-column: 1 / -1; }
+      .concept-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 760px) {
+      .shell { width: min(100% - 22px, 1500px); }
+      .top-status > span:not(.signal) { display: none; }
+      .modebar { grid-template-columns: repeat(5, minmax(94px, 1fr)); overflow-x: auto; }
+      .workspace { grid-template-columns: 1fr; }
+      .intro { min-height: 420px; }
+      .stage { min-height: 650px; }
+      .detail { grid-column: auto; display: flex; }
+      .concept-grid { grid-template-columns: 1fr; }
+      .boundary { align-items: flex-start; flex-direction: column; }
+      .hotspot::after { display: none; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="shell topbar">
+    <div class="brand"><div class="seal">岐</div><div><strong>岐黄巧手</strong><span>具身文化教学交互台</span></div></div>
+    <div class="top-status"><span class="signal"></span><span>演示系统就绪</span><button class="outline-btn" type="button" onclick="document.querySelector('.concepts').scrollIntoView()">了解系统</button></div>
+  </header>
+
+  <main class="shell">
+    <nav class="modebar" aria-label="体验项目">
+      <button class="mode-btn active" data-mode="guide">穴位科普<small>POINT GUIDE</small></button>
+      <button class="mode-btn" data-mode="needle">无针针灸<small>TEACHING</small></button>
+      <button class="mode-btn" data-mode="tap">捶背演示<small>AREA</small></button>
+      <button class="mode-btn" data-mode="massage">按摩轨迹<small>PATH</small></button>
+      <button class="mode-btn" data-mode="cupping">无火拔罐<small>PLACEMENT</small></button>
+    </nav>
+
+    <section class="workspace" aria-label="互动体验区">
+      <article class="panel intro">
+        <span class="eyebrow">TCM CULTURE × ROBOTICS</span>
+        <h1>看得见，<span>也能动起来。</span></h1>
+        <p class="lead">用一具可交互假人，把穴位、动作区域和工具轨迹讲清楚。</p>
+        <div class="mode-copy">
+          <span class="index" id="modeIndex">01 / POINT</span>
+          <h2 id="modeTitle">认识身体上的十个教学点</h2>
+          <p id="modeDescription">翻转假人、点击穴位，了解标准身体区域与机器人演示方式。</p>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><strong id="legendPrimary">10</strong><span id="legendPrimaryLabel">正反面教学穴位</span></div>
+          <div class="legend-item"><strong id="legendSecondary">2 面</strong><span id="legendSecondaryLabel">正面与背面切换</span></div>
+        </div>
+      </article>
+
+      <article class="panel stage">
+        <div class="stage-head">
+          <div class="stage-title"><span class="signal"></span><strong id="stageLabel">穴位文化导览</strong></div>
+          <div class="view-switch" aria-label="假人朝向">
+            <button class="view-btn" data-view="front">正面</button>
+            <button class="view-btn active" data-view="back">背面</button>
+          </div>
+        </div>
+
+        <div class="body-stage" id="bodyStage" data-view="back">
+          <div class="halo"></div>
+          <svg class="body-svg" viewBox="0 0 320 520" role="img" aria-label="教学假人正背面示意图">
+            <path class="body-fill" d="M126 77c-8-9-13-22-13-36C113 17 131 2 160 2s47 15 47 39c0 14-5 27-13 36l-6 18c23 7 52 13 73 30 19 15 25 46 22 79l-13 272c-1 23-19 40-42 40H92c-23 0-41-17-42-40L37 204c-3-33 3-64 22-79 21-17 50-23 73-30l-6-18Z"/>
+            <path class="body-line" d="M126 78c10 8 22 12 34 12s24-4 34-12M70 150c22 14 47 17 90 17s68-3 90-17M79 268c23-19 47-25 81-25s58 6 81 25"/>
+            <g class="back-detail">
+              <path class="meridian" d="M160 87v346"/>
+              <path class="body-line" d="M82 151c16 32 37 48 66 52M238 151c-16 32-37 48-66 52M97 306c22 13 39 18 63 18s41-5 63-18"/>
+            </g>
+            <g class="front-detail">
+              <path class="meridian" d="M160 91v344"/>
+              <path class="body-line" d="M91 156c21 17 42 23 69 23s48-6 69-23M97 235c20 7 40 10 63 10s43-3 63-10M112 286c12 15 27 23 48 23s36-8 48-23"/>
+              <circle cx="119" cy="185" r="4" fill="#b99073"/><circle cx="201" cy="185" r="4" fill="#b99073"/>
+            </g>
+          </svg>
+
+          <div id="hotspotLayer" class="layer visible"></div>
+          <div id="tapLayer" class="layer"><div class="tap-zone left"></div><div class="tap-zone right"></div></div>
+          <div id="massageLayer" class="layer"><svg class="route-svg" viewBox="0 0 300 360"><path class="route" d="M94 58c-26 50-21 106 0 146s18 81-3 118"/><path class="route" d="M206 58c26 50 21 106 0 146s-18 81 3 118"/></svg></div>
+          <div id="cuppingLayer" class="layer"><span class="cup-target one"></span><span class="cup-target two"></span><span class="cup-target three"></span></div>
+        </div>
+
+        <div class="stage-footer">
+          <button class="primary-btn" id="playButton" type="button">开始导览</button>
+          <div class="progress-wrap"><div class="progress-meta"><span id="progressText">已选择：大椎</span><span id="progressValue">20%</span></div><div class="progress"><span id="progressBar"></span></div></div>
+        </div>
+      </article>
+
+      <aside class="panel detail">
+        <div>
+          <div class="status-row"><span class="eyebrow">当前目标</span><span class="status-pill" id="statusPill">科普模式</span></div>
+          <h2 id="targetName">大椎</h2>
+          <span class="code" id="targetCode">GV14 · 督脉</span>
+          <p class="detail-copy" id="targetDescription">位于颈背交界的后正中线区域，是背面导览的起始教学点。</p>
+          <ul class="facts">
+            <li><span>目标类型</span><strong id="targetType">穴位点</strong></li>
+            <li><span>演示方式</span><strong id="targetAction">软头指示笔悬停指示</strong></li>
+            <li><span>定位来源</span><strong id="targetSource">背部标记坐标系</strong></li>
+          </ul>
+        </div>
+        <div class="sequence">
+          <div class="sequence-head"><span>演示流程</span><span id="sequenceCount">1 / 5</span></div>
+          <ol class="steps" id="sequenceSteps"></ol>
+        </div>
+        <div class="safety"><strong>教学边界</strong><span>所有动作仅用于教学假人，不进行针刺、诊断或真人治疗。</span></div>
+      </aside>
+    </section>
+
+    <section class="concepts">
+      <div class="concept-head"><span class="eyebrow">ONE BODY · FOUR TARGET TYPES</span><h2>一具假人，统一四类任务语言</h2><p>网站先把复杂机器人流程转换成观众一眼能理解的图形，再逐步接入相机和真实动作状态。</p></div>
+      <div class="concept-grid">
+        <article class="concept-card"><b>•</b><h3>点</h3><p>穴位和无针针灸使用明确目标点，适合逐一讲解与顺序演示。</p></article>
+        <article class="concept-card"><b>▧</b><h3>区域</h3><p>捶背用左右肩背区域表达，不把连续动作伪装成单一穴位。</p></article>
+        <article class="concept-card"><b>↝</b><h3>路径</h3><p>按摩用方向明确的短路线表达，实时展示进度、速度和剩余时间。</p></article>
+        <article class="concept-card"><b>◎</b><h3>放置位</h3><p>无火罐使用圆形靶位，展示抓取、放置、确认、取回的完整闭环。</p></article>
+      </div>
+      <div class="boundary"><strong>文化科普与工程示教，而非医疗服务</strong><span>假人专用 · 无针刺 · 无明火 · 不做诊断 · 不宣称疗效</span></div>
+    </section>
+  </main>
+
+  <script>
+    const pointSets = {
+      back: [
+        { id: 'GV14', name: '大椎', channel: '督脉', x: 50, y: 19, description: '位于颈背交界的后正中线区域，是背面导览的起始教学点。' },
+        { id: 'SI11-L', name: '左天宗', channel: '手太阳小肠经', x: 42, y: 38, description: '位于左侧肩胛区域，是左右对称的肩背教学点之一。', left: true },
+        { id: 'SI11-R', name: '右天宗', channel: '手太阳小肠经', x: 58, y: 38, description: '位于右侧肩胛区域，与左天宗共同展示对称定位。' },
+        { id: 'BL23-L', name: '左肾俞', channel: '足太阳膀胱经', x: 45, y: 62, description: '位于左侧腰背区域，用于展示下背部的成对教学点。', left: true },
+        { id: 'BL23-R', name: '右肾俞', channel: '足太阳膀胱经', x: 55, y: 62, description: '位于右侧腰背区域，与左肾俞共同形成下方定位参考。' }
+      ],
+      front: [
+        { id: 'CV17', name: '膻中', channel: '任脉', x: 50, y: 37, description: '位于胸部前正中线，是正面导览的上方中央教学点。' },
+        { id: 'CV12', name: '中脘', channel: '任脉', x: 50, y: 50, description: '位于上腹部正中区域，连接胸部与腹部教学内容。' },
+        { id: 'ST25-L', name: '左天枢', channel: '足阳明胃经', x: 44, y: 58, description: '位于脐部左侧，是正面腹部的一对对称教学点。', left: true },
+        { id: 'ST25-R', name: '右天枢', channel: '足阳明胃经', x: 56, y: 58, description: '位于脐部右侧，与左天枢共同展示横向定位。' },
+        { id: 'CV4', name: '关元', channel: '任脉', x: 50, y: 69, description: '位于下腹部前正中线，使正面导览形成清楚的上下结构。' }
+      ]
+    };
+
+    const modes = {
+      guide: { index: '01 / POINT', title: '认识身体上的十个教学点', description: '翻转假人、点击穴位，了解身体区域与机器人演示方式。', stage: '穴位文化导览', primary: '10', primaryLabel: '正反面教学穴位', secondary: '2 面', secondaryLabel: '正面与背面切换', status: '科普模式', type: '穴位点', action: '软头指示笔悬停指示', play: '开始导览' },
+      needle: { index: '02 / TEACHING', title: '把找穴过程变成安全示教', description: '以钝头指示或磁吸教学针依次演示，不进行任何皮肤穿刺。', stage: '无针针灸定位示教', primary: '5 步', primaryLabel: '单面顺序导览', secondary: '0 刺入', secondaryLabel: '仅定位不穿刺', status: '无针示教', type: '顺序点位', action: '钝头或磁吸教学针', play: '开始示教' },
+      tap: { index: '03 / AREA', title: '连续动作，用区域而不是穴位表达', description: '左右肩背区域交替高亮，清楚展示低速捶背的范围与节奏。', stage: '双手捶背区域演示', primary: '2 区', primaryLabel: '左右肩背动作区', secondary: '低速', secondaryLabel: '预设节奏循环', status: '区域演示', type: '动作区域', action: '双手低速交替捶击', play: '模拟运行' },
+      massage: { index: '04 / PATH', title: '让观众看见按摩头走过的路线', description: '用动态路径表达起点、方向、当前进度和安全退出。', stage: '筋膜枪轨迹示教', primary: '2 条', primaryLabel: '左右肩背短路径', secondary: '可视化', secondaryLabel: '方向与进度同步', status: '路径演示', type: '预设路径', action: '筋膜枪沿短路径移动', play: '模拟运行' },
+      cupping: { index: '05 / PLACEMENT', title: '从抓取到确认的完整放置闭环', description: '圆形靶位显示训练罐目标，强调无明火和结果确认。', stage: '无火负压罐放置', primary: '3 位', primaryLabel: '训练罐放置靶位', secondary: '闭环', secondaryLabel: '放置确认与取回', status: '放置演示', type: '工具放置位', action: '抓取、放置、确认、取回', play: '模拟运行' }
+    };
+
+    const genericTargets = {
+      tap: { name: '左右肩背区', code: 'AREA · 预设动作区', description: '以半透明区域表示低速捶背范围，动作不会经过头部或脊柱中线。', source: '背部归一化区域' },
+      massage: { name: '肩背短路径', code: 'PATH · 左右双路线', description: '两条预设路线展示筋膜枪的移动方向和进度，完成后安全离开假人。', source: '背部归一化路径' },
+      cupping: { name: '训练罐靶位', code: 'PLACEMENT · 3 TARGETS', description: '三个圆形目标用于展示无火训练罐的放置、确认和取回顺序。', source: '背部预设放置位' }
+    };
+
+    const modeSteps = {
+      tap: ['左肩背区接近', '轻触确认', '左右交替动作', '停止并抬升', '返回安全位'],
+      massage: ['工具抓持确认', '移动至安全高度', '左侧路径', '右侧路径', '关闭并归位'],
+      cupping: ['识别训练罐', '调整罐口方向', '放置目标位', '视觉稳定确认', '取回并归位']
+    };
+
+    let currentMode = 'guide';
+    let currentView = 'back';
+    let currentIndex = 0;
+    let timer = null;
+
+    const $ = (id) => document.getElementById(id);
+
+    function renderHotspots() {
+      const layer = $('hotspotLayer');
+      layer.innerHTML = '';
+      pointSets[currentView].forEach((point, index) => {
+        const button = document.createElement('button');
+        button.className = `hotspot ${point.left ? 'left-label' : ''} ${index === currentIndex ? 'active' : ''}`;
+        button.style.left = `${point.x}%`;
+        button.style.top = `${point.y}%`;
+        button.dataset.short = point.name;
+        button.setAttribute('aria-label', `${point.name} ${point.id}`);
+        button.textContent = index + 1;
+        button.onclick = () => { currentIndex = index; stopPlayback(); render(); };
+        layer.appendChild(button);
+      });
+    }
+
+    function renderSteps(items) {
+      $('sequenceSteps').innerHTML = items.map((item, index) => `<li class="${index === currentIndex ? 'active' : ''}">${item}</li>`).join('');
+      $('sequenceCount').textContent = `${Math.min(currentIndex + 1, items.length)} / ${items.length}`;
+    }
+
+    function render() {
+      const mode = modes[currentMode];
+      document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.mode === currentMode));
+      document.querySelectorAll('.view-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.view === currentView));
+      $('bodyStage').dataset.view = currentView;
+      $('modeIndex').textContent = mode.index;
+      $('modeTitle').textContent = mode.title;
+      $('modeDescription').textContent = mode.description;
+      $('stageLabel').textContent = mode.stage;
+      $('legendPrimary').textContent = mode.primary;
+      $('legendPrimaryLabel').textContent = mode.primaryLabel;
+      $('legendSecondary').textContent = mode.secondary;
+      $('legendSecondaryLabel').textContent = mode.secondaryLabel;
+      $('statusPill').textContent = mode.status;
+      $('targetType').textContent = mode.type;
+      $('targetAction').textContent = mode.action;
+      $('playButton').textContent = timer ? '暂停演示' : mode.play;
+
+      const isPointMode = currentMode === 'guide' || currentMode === 'needle';
+      $('hotspotLayer').classList.toggle('visible', isPointMode);
+      $('tapLayer').classList.toggle('visible', currentMode === 'tap');
+      $('massageLayer').classList.toggle('visible', currentMode === 'massage');
+      $('cuppingLayer').classList.toggle('visible', currentMode === 'cupping');
+
+      if (isPointMode) {
+        const points = pointSets[currentView];
+        currentIndex %= points.length;
+        const point = points[currentIndex];
+        $('targetName').textContent = point.name;
+        $('targetCode').textContent = `${point.id} · ${point.channel}`;
+        $('targetDescription').textContent = point.description;
+        $('targetSource').textContent = `${currentView === 'back' ? '背部' : '正面'}标记坐标系`;
+        renderHotspots();
+        renderSteps(points.map(p => `${p.name} ${p.id}`));
+        const progress = Math.round((currentIndex + 1) / points.length * 100);
+        $('progressText').textContent = `已选择：${point.name}`;
+        $('progressValue').textContent = `${progress}%`;
+        $('progressBar').style.width = `${progress}%`;
+      } else {
+        const target = genericTargets[currentMode];
+        const steps = modeSteps[currentMode];
+        currentIndex %= steps.length;
+        $('targetName').textContent = target.name;
+        $('targetCode').textContent = target.code;
+        $('targetDescription').textContent = target.description;
+        $('targetSource').textContent = target.source;
+        renderSteps(steps);
+        const progress = Math.round((currentIndex + 1) / steps.length * 100);
+        $('progressText').textContent = `当前阶段：${steps[currentIndex]}`;
+        $('progressValue').textContent = `${progress}%`;
+        $('progressBar').style.width = `${progress}%`;
+      }
+    }
+
+    function stopPlayback() {
+      if (timer) clearInterval(timer);
+      timer = null;
+    }
+
+    function togglePlayback() {
+      if (timer) { stopPlayback(); render(); return; }
+      const count = currentMode === 'guide' || currentMode === 'needle' ? pointSets[currentView].length : modeSteps[currentMode].length;
+      timer = setInterval(() => { currentIndex = (currentIndex + 1) % count; render(); }, 1450);
+      render();
+    }
+
+    document.querySelectorAll('.mode-btn').forEach(btn => btn.onclick = () => {
+      stopPlayback(); currentMode = btn.dataset.mode; currentIndex = 0;
+      if (['tap','massage','cupping'].includes(currentMode)) currentView = 'back';
+      render();
+    });
+    document.querySelectorAll('.view-btn').forEach(btn => btn.onclick = () => { stopPlayback(); currentView = btn.dataset.view; currentIndex = 0; render(); });
+    $('playButton').onclick = togglePlayback;
+    render();
+  </script>
+</body>
+</html>
