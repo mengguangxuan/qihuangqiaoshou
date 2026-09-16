@@ -394,6 +394,19 @@
     .robot-form button { padding:0 20px; color:#fff; background:var(--cinnabar); cursor:pointer; }
     .robot-form button:disabled { opacity:.48; cursor:not-allowed; }
     .robot-status { margin:15px 0 0; padding:12px 13px; border-left:4px solid var(--gold); color:var(--ink-soft); background:rgba(224,210,180,.38); font-size:13px; line-height:1.65; }
+    .connection-panel { margin-top:13px; padding:13px; border:1px solid rgba(23,51,47,.14); background:rgba(255,253,248,.56); }
+    .connection-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .connection-head strong { font:700 16px/1.2 "STKaiti","KaiTi",serif; letter-spacing:.06em; }
+    .connection-head span { color:var(--ink-soft); font-size:12px; }
+    .connection-grid { margin-top:10px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+    .connection-item { min-height:39px; padding:8px 9px; display:flex; align-items:center; gap:8px; border:1px solid rgba(23,51,47,.1); color:var(--ink-soft); background:rgba(255,253,248,.72); font-size:12px; }
+    .connection-item::before { content:""; width:8px; height:8px; flex:none; border-radius:50%; background:#a28f75; box-shadow:0 0 0 4px rgba(162,143,117,.12); }
+    .connection-item.ok::before { background:#39835d; box-shadow:0 0 0 4px rgba(57,131,93,.12); }
+    .connection-item.bad::before { background:var(--cinnabar); box-shadow:0 0 0 4px rgba(184,70,53,.12); }
+    .robot-safety-actions { margin-top:9px; display:grid; grid-template-columns:1fr auto; gap:8px; }
+    .robot-safety-actions button { min-height:41px; padding:0 13px; border:1px solid rgba(23,51,47,.18); border-radius:4px; color:var(--ink); background:#fffaf0; cursor:pointer; font-weight:800; }
+    .robot-safety-actions .emergency { min-width:105px; color:#fff; border-color:#76291f; background:#76291f; }
+    .robot-safety-actions button:disabled { opacity:.48; cursor:not-allowed; }
     .teach-panel { margin-top:15px; padding:16px; border:1px solid rgba(159,52,39,.24); background:rgba(245,235,212,.72); }
     .teach-head { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
     .teach-head strong { font:700 19px/1.2 "STKaiti","KaiTi",serif; }
@@ -403,7 +416,6 @@
     .teach-button { min-height:45px; padding:7px; border:1px solid rgba(159,52,39,.3); color:var(--cinnabar-dark); background:#fffaf0; cursor:pointer; font:700 14px/1.25 "STKaiti","KaiTi",serif; }
     .teach-button.done { color:#fff; border-color:#315d4e; background:#315d4e; }
     .teach-button:disabled { opacity:.48; cursor:not-allowed; }
-    .robot-open { display:inline-flex; margin-top:13px; color:var(--cinnabar-dark); font-weight:800; text-underline-offset:3px; }
     .stream-frame { position:relative; aspect-ratio:16/9; overflow:hidden; background:#15231f; }
     .stream-frame img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
     .stream-placeholder { position:absolute; inset:0; display:grid; place-items:center; padding:28px; color:#e7dcc0; text-align:center; line-height:1.7; }
@@ -597,13 +609,17 @@
       <div class="robot-console-grid">
         <div class="robot-control">
           <label for="robotPointSelect">选择演示穴位</label>
-          <div class="robot-form"><select id="robotPointSelect"><option value="GV14">大椎 · GV14</option><option value="SI11-L">左天宗 · SI11-L</option><option value="SI11-R">右天宗 · SI11-R</option><option value="BL23-L">左肾俞 · BL23-L</option><option value="BL23-R">右肾俞 · BL23-R</option></select><button id="robotExecute" type="button">执行动作</button></div>
+          <div class="robot-form"><select id="robotPointSelect"><option value="GV14">大椎 · GV14</option><option value="SI11-L">左天宗 · SI11-L</option><option value="SI11-R">右天宗 · SI11-R</option><option value="BL23-L">左肾俞 · BL23-L</option><option value="BL23-R">右肾俞 · BL23-R</option></select><button id="robotExecute" type="button" disabled>等待安全检查</button></div>
           <div class="robot-status" id="robotStatus">正在寻找本机视觉与机械臂服务……</div>
+          <section class="connection-panel" aria-labelledby="connectionTitle">
+            <div class="connection-head"><strong id="connectionTitle">真机连接检查</strong><span>只读检查，不发送运动</span></div>
+            <div class="connection-grid"><div class="connection-item" id="checkLocal">本机穴位服务</div><div class="connection-item" id="checkVision">AprilTag 定位</div><div class="connection-item" id="checkBridge">8766 动作桥</div><div class="connection-item" id="checkArm">左臂关节与 Arm_Tip</div></div>
+            <div class="robot-safety-actions"><button id="robotPreflight" type="button">检查机器人连接</button><button class="emergency" id="robotEmergency" type="button" disabled>紧急停止</button></div>
+          </section>
           <section class="teach-panel" aria-labelledby="teachTitle"><div class="teach-head"><strong id="teachTitle">关键帧示教</strong><span>当前所选穴位</span></div><p>由现场人员把左臂调整到对应姿态，再点击记录；绿色表示该帧已经保存，再次点击可覆盖。</p><div class="teach-grid"><button class="teach-button" data-keyframe="approach" type="button">记录接近位</button><button class="teach-button" data-keyframe="target" type="button">记录指向位</button><button class="teach-button" data-keyframe="retreat" type="button">记录撤离位</button></div></section>
-          <a class="robot-open" id="robotOpenLocal" href="http://127.0.0.1:8091" target="_blank" rel="noreferrer">打开本机寻穴控制台 →</a>
         </div>
         <div class="robot-vision">
-          <div class="stream-frame"><img id="robotVideo" alt="Gemini 2 实时穴位画面"><div class="stream-placeholder" id="streamPlaceholder"><div><strong>等待本机视频流</strong>先启动 FiveFinger 的穴位服务；线上页面受浏览器安全策略限制时，请打开本机控制台观看和执行。</div></div></div>
+          <div class="stream-frame"><img id="robotVideo" alt="Gemini 2 实时穴位画面"><div class="stream-placeholder" id="streamPlaceholder"><div><strong>等待本机视频流</strong>先在机器人电脑启动 FiveFinger 穴位服务；连接后，视频、示教与动作控制都会直接出现在本页。</div></div></div>
           <div class="coordinate-list" id="coordinateList"><div class="coordinate-item"><strong>实时坐标</strong>定位后显示</div></div>
         </div>
       </div>
@@ -839,6 +855,7 @@
     }
 
     function localQuestionFallback(words) {
+      if (/急停|紧急停止|停止机械臂|机械臂停下/.test(words)) return { reply: '我识别到停止请求，但当前本机动作桥未连接。请立即使用机器人实体急停按钮。' };
       const namedPoint = [...pointSets.back, ...pointSets.front].find(point => words.includes(point.name.replace(/[左右]/, '')) || words.includes(point.name));
       const asksAction = /指|指出|找|带我看|移动到|运动到/.test(words);
       if (namedPoint && asksAction && pointSets.back.some(point => point.id === namedPoint.id)) {
@@ -877,11 +894,15 @@
       $('voiceReply').textContent = result.reply;
       $('agentAnswer').textContent = result.reply;
       readTextAloud(result.reply);
-      if (result.requires_confirmation && result.proposal?.type === 'execute_acupoint') {
+      if (result.requires_confirmation && result.proposal) {
         pendingVoiceAction = result.proposal;
-        $('confirmVoiceAction').textContent = `确认让机械臂指向${result.proposal.label}`;
+        $('confirmVoiceAction').textContent = result.proposal.type === 'emergency_stop'
+          ? '确认发送软件急停'
+          : `确认让机械臂指向${result.proposal.label}`;
         $('confirmVoiceAction').hidden = false;
-        setVoicePhase('待确认', '语音只生成动作建议；点击确认后才会交给本机安全检查');
+        setVoicePhase('待确认', result.proposal.type === 'emergency_stop'
+          ? '软件急停不能代替实体急停，请同时做好现场处置'
+          : '语音只生成动作建议；点击确认后才会交给本机安全检查');
       } else {
         setVoicePhase(result.intent === 'model_required' ? '模型未接入' : '已回答', localRobotConnected ? '本机服务已返回结果' : '使用页面内置资料回答；本机智能服务未连接');
       }
@@ -1011,22 +1032,33 @@
     let localRobotConnected = false;
     let localRobotStatus = null;
 
-    function updateLocalRobotLink() {
-      const code = $('robotPointSelect').value;
-      $('robotOpenLocal').href = `${localRobotBase}/?point=${encodeURIComponent(code)}`;
-    }
-
     function renderRobotStatus(status) {
       localRobotConnected = true;
       localRobotStatus = status;
       const selected = status.flows?.find(item => item.code === $('robotPointSelect').value);
       const action = status.action || {};
-      const ready = Boolean(status.tracking && selected?.ready && action.enabled && !action.running);
+      const bridge = action.bridge || {};
+      const health = bridge.health || {};
+      const leftAge = health.joint_state_age_s?.left;
+      const armReady = bridge.ok && Number.isFinite(leftAge) && leftAge <= 1 && health.tool_frames?.left === 'Arm_Tip';
+      const ready = Boolean(status.tracking && selected?.ready && action.enabled && !action.running && bridge.ok);
       $('robotExecute').disabled = !ready;
       $('robotExecute').textContent = action.running ? '动作执行中' : '执行动作';
       const vision = status.tracking ? `视觉定位稳定（${status.fps} fps）` : '视觉尚未稳定';
       const taught = selected?.ready ? '该穴位关键帧已就绪' : `待示教：${selected?.missing?.join('、') || '未读取'}`;
-      $('robotStatus').textContent = `${vision}；${taught}；${action.message || ''}`;
+      const bridgeText = bridge.checked ? bridge.message : '尚未进行机器人连接检查';
+      $('robotStatus').textContent = `${vision}；${taught}；${bridgeText}；${action.message || ''}`;
+      const setCheck = (id, label, state) => {
+        const item = $(id);
+        item.textContent = label;
+        item.classList.toggle('ok', state === true);
+        item.classList.toggle('bad', state === false);
+      };
+      setCheck('checkLocal', '本机穴位服务已连接', true);
+      setCheck('checkVision', status.tracking ? 'AprilTag 定位稳定' : 'AprilTag 定位未稳定', Boolean(status.tracking));
+      setCheck('checkBridge', bridge.checked ? (bridge.ok ? '8766 动作桥已就绪' : '8766 动作桥未就绪') : '8766 动作桥待检查', bridge.checked ? Boolean(bridge.ok) : null);
+      setCheck('checkArm', bridge.checked ? (armReady ? '左臂状态与 Arm_Tip 正常' : '左臂状态或工具坐标异常') : '左臂状态待检查', bridge.checked ? Boolean(armReady) : null);
+      $('robotEmergency').disabled = !bridge.checked;
       document.querySelectorAll('.teach-button').forEach(button => {
         const done = Boolean(selected && !(selected.missing || []).includes(button.dataset.keyframe));
         const labels = { approach:'接近位', target:'指向位', retreat:'撤离位' };
@@ -1049,15 +1081,20 @@
       } catch (_) {
         localRobotConnected = false;
         localRobotStatus = null;
-        $('robotExecute').disabled = false;
-        $('robotExecute').textContent = '转到本机执行';
+        $('robotExecute').disabled = true;
+        $('robotExecute').textContent = '等待本机服务';
+        $('robotPreflight').disabled = false;
+        $('robotEmergency').disabled = true;
+        ['checkLocal','checkVision','checkBridge','checkArm'].forEach(id => { $(id).classList.remove('ok','bad'); });
+        $('checkLocal').textContent = '本机穴位服务未连接';
+        $('checkVision').textContent = 'AprilTag 状态未知';
+        $('checkBridge').textContent = '8766 动作桥状态未知';
+        $('checkArm').textContent = '左臂状态未知';
         document.querySelectorAll('.teach-button').forEach(button => {
           button.disabled = false;
           button.classList.remove('done');
         });
-        $('robotStatus').textContent = location.protocol === 'https:'
-          ? '线上展馆不能直接读取电脑上的 HTTP 相机流。请打开本机控制台；选择的穴位会自动带过去。'
-          : '尚未发现本机服务。请先在 FiveFinger-master 中启动穴位演示。';
+        $('robotStatus').textContent = '尚未发现机器人电脑上的本机服务。启动后，本页会自动接入视频、示教、连接检查与动作控制，无需打开另一张网页。';
       }
     }
 
@@ -1092,31 +1129,60 @@
       if (!proposal) return;
       pendingVoiceAction = null;
       $('confirmVoiceAction').hidden = true;
-      $('voiceReply').textContent = `正在提交${proposal.label}动作，本机还会检查示教、视觉稳定和执行开关……`;
-      setVoicePhase('安全检查', '尚未确认机械臂已经运动');
+      const emergency = proposal.type === 'emergency_stop';
+      $('voiceReply').textContent = emergency ? '正在向本机动作桥发送软件急停……' : `正在提交${proposal.label}动作，本机还会检查示教、视觉稳定和执行开关……`;
+      setVoicePhase(emergency ? '发送急停' : '安全检查', emergency ? '请同时准备使用实体急停' : '尚未确认机械臂已经运动');
       try {
-        const response = await fetch(`${localRobotBase}/api/execute`, {
+        const response = await fetch(`${localRobotBase}${emergency ? '/api/emergency-stop' : '/api/execute'}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ point: proposal.point }),
+          body: JSON.stringify(emergency ? {} : { point: proposal.point }),
           signal: AbortSignal.timeout(3000)
         });
         const result = await response.json();
         if (!response.ok || !result.ok) throw new Error(result.error || '动作未被接受');
-        $('robotPointSelect').value = proposal.point;
+        if (!emergency) $('robotPointSelect').value = proposal.point;
         $('voiceReply').textContent = result.action.message;
-        setVoicePhase('已提交', '请继续观察机械臂与本机状态，随时准备急停');
+        setVoicePhase(emergency ? '急停已发送' : '已提交', '请继续观察机械臂与本机状态，随时准备实体急停');
       } catch (error) {
         $('voiceReply').textContent = `没有执行：${error.message || '无法连接本机机械臂服务'}`;
         setVoicePhase('未执行', '动作没有通过本机安全检查');
       }
       window.setTimeout(refreshRobotBridge, 400);
     };
-    $('robotPointSelect').onchange = () => { updateLocalRobotLink(); if (localRobotStatus) renderRobotStatus(localRobotStatus); };
-    $('robotExecute').onclick = async () => {
-      updateLocalRobotLink();
+    $('robotPointSelect').onchange = () => { if (localRobotStatus) renderRobotStatus(localRobotStatus); };
+    $('robotPreflight').onclick = async () => {
       if (!localRobotConnected) {
-        window.open($('robotOpenLocal').href, '_blank', 'noopener');
+        $('robotStatus').textContent = '本机服务尚未连接。请先在机器人电脑启动穴位服务，本页会自动重试。';
+        return;
+      }
+      $('robotPreflight').disabled = true;
+      $('robotStatus').textContent = '正在只读检查机器人 IP、ROS2 服务、双臂关节状态与工具坐标系……';
+      try {
+        const response = await fetch(`${localRobotBase}/api/preflight`, { cache:'no-store', signal:AbortSignal.timeout(7000) });
+        const result = await response.json();
+        localRobotStatus.action = { ...(localRobotStatus.action || {}), bridge: result };
+        renderRobotStatus(localRobotStatus);
+      } catch (_) {
+        $('robotStatus').textContent = '连接检查失败：请先启动 LBot 驱动与 8766 动作桥。检查过程没有发送运动。';
+      }
+      $('robotPreflight').disabled = false;
+    };
+    $('robotEmergency').onclick = async () => {
+      $('robotEmergency').disabled = true;
+      $('robotStatus').textContent = '正在发送软件急停；如有危险，请立即按下实体急停。';
+      try {
+        const response = await fetch(`${localRobotBase}/api/emergency-stop`, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}', signal:AbortSignal.timeout(6000) });
+        const result = await response.json();
+        $('robotStatus').textContent = result.ok ? result.action.message : `软件急停失败：${result.error}；请立即使用实体急停。`;
+      } catch (_) {
+        $('robotStatus').textContent = '无法连接软件急停接口，请立即使用实体急停。';
+      }
+      window.setTimeout(refreshRobotBridge, 300);
+    };
+    $('robotExecute').onclick = async () => {
+      if (!localRobotConnected) {
+        $('robotStatus').textContent = '本机服务尚未连接，没有提交任何动作。';
         return;
       }
       $('robotExecute').disabled = true;
@@ -1126,14 +1192,13 @@
         const result = await response.json();
         $('robotStatus').textContent = result.ok ? result.action.message : `未执行：${result.error}`;
       } catch (_) {
-        $('robotStatus').textContent = '本机服务连接中断，没有确认动作已提交。请到本机控制台核对。';
+        $('robotStatus').textContent = '本机服务连接中断，没有确认动作已提交。请检查本页连接状态。';
       }
       window.setTimeout(refreshRobotBridge, 400);
     };
     document.querySelectorAll('.teach-button').forEach(button => button.onclick = async () => {
-      updateLocalRobotLink();
       if (!localRobotConnected) {
-        window.open($('robotOpenLocal').href, '_blank', 'noopener');
+        $('robotStatus').textContent = '本机示教服务尚未连接，没有记录关键帧。';
         return;
       }
       document.querySelectorAll('.teach-button').forEach(item => { item.disabled = true; });
@@ -1148,7 +1213,6 @@
       window.setTimeout(refreshRobotBridge, 450);
     });
     window.speechSynthesis?.addEventListener?.('voiceschanged', () => {});
-    updateLocalRobotLink();
     window.setInterval(refreshRobotBridge, 1200);
     refreshRobotBridge();
     render();
