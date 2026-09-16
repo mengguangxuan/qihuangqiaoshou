@@ -29,11 +29,7 @@
       margin: 0;
       min-width: 320px;
       color: var(--ink);
-      background:
-        radial-gradient(circle at 12% 16%, rgba(201,151,62,.13), transparent 25rem),
-        radial-gradient(circle at 88% 84%, rgba(61,114,105,.12), transparent 28rem),
-        linear-gradient(135deg, rgba(255,255,255,.55), transparent 48%),
-        var(--paper);
+      background: #e9dfca;
       font-family: "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
       line-height: 1.6;
     }
@@ -42,10 +38,21 @@
       content: "";
       position: fixed;
       inset: 0;
-      z-index: -1;
-      opacity: .22;
+      z-index: -2;
+      opacity: .68;
       pointer-events: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.11'/%3E%3C/svg%3E");
+      background: url("assets/qihuang-paper-bg.png") center top / cover fixed no-repeat;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(242,234,216,.16), rgba(255,253,248,.76) 25%, rgba(255,253,248,.68) 75%, rgba(242,234,216,.12)),
+        radial-gradient(circle at 50% 22%, rgba(255,253,248,.72), transparent 48%);
     }
 
     button { font: inherit; }
@@ -53,6 +60,7 @@
 
     .shell { width: min(1500px, calc(100% - 40px)); margin: 0 auto; }
     .topbar {
+      position: relative;
       min-height: 82px;
       display: flex;
       align-items: center;
@@ -60,6 +68,7 @@
       gap: 24px;
       border-bottom: 1px solid var(--line);
     }
+    .topbar::after { content: ""; position: absolute; left: 0; right: 0; bottom: -2px; height: 3px; background: linear-gradient(90deg, transparent, rgba(201,151,62,.72), transparent); }
 
     .brand { display: flex; align-items: center; gap: 13px; }
     .seal {
@@ -96,10 +105,11 @@
       display: grid;
       grid-template-columns: repeat(5, 1fr);
       gap: 7px;
-      border: 1px solid var(--line);
+      border: 1px solid rgba(121,87,30,.28);
       border-radius: 18px;
-      background: rgba(255,253,248,.55);
-      box-shadow: 0 10px 30px rgba(70,54,28,.05);
+      background: rgba(250,244,230,.72);
+      box-shadow: 0 10px 30px rgba(70,54,28,.08), inset 0 0 0 3px rgba(255,253,248,.36);
+      backdrop-filter: blur(15px);
     }
     .mode-btn {
       min-height: 48px;
@@ -125,24 +135,47 @@
     .panel {
       position: relative;
       overflow: hidden;
-      border: 1px solid rgba(23,51,47,.12);
+      border: 1px solid rgba(121,87,30,.25);
       border-radius: var(--radius);
-      background: rgba(255,253,248,.72);
+      background: rgba(255,253,248,.78);
       box-shadow: var(--shadow);
       backdrop-filter: blur(16px);
     }
+    .panel::before, .panel::after {
+      content: "";
+      position: absolute;
+      z-index: 10;
+      width: 25px;
+      height: 25px;
+      pointer-events: none;
+      opacity: .75;
+    }
+    .panel::before { left: 12px; top: 12px; border-left: 2px solid var(--gold); border-top: 2px solid var(--gold); border-radius: 7px 0 0; }
+    .panel::after { right: 12px; bottom: 12px; border-right: 2px solid var(--gold); border-bottom: 2px solid var(--gold); border-radius: 0 0 7px; }
 
-    .intro { padding: 32px 30px; display: flex; flex-direction: column; }
+    .intro { padding: 30px 28px; display: flex; flex-direction: column; background: linear-gradient(155deg, rgba(255,253,248,.9), rgba(238,224,194,.76)); }
+    .title-slip {
+      position: relative;
+      padding: 24px 20px 22px;
+      border: 1px solid rgba(131,50,38,.28);
+      background:
+        linear-gradient(90deg, rgba(131,50,38,.06), transparent 12%, transparent 88%, rgba(131,50,38,.06)),
+        rgba(250,243,226,.62);
+      box-shadow: inset 0 0 0 4px rgba(255,253,248,.45), 0 12px 28px rgba(72,52,20,.08);
+    }
+    .title-slip::before, .title-slip::after { content: ""; position: absolute; left: 12px; right: 12px; height: 7px; border-left: 1px solid var(--cinnabar); border-right: 1px solid var(--cinnabar); opacity: .65; }
+    .title-slip::before { top: -4px; border-top: 1px solid var(--cinnabar); }
+    .title-slip::after { bottom: -4px; border-bottom: 1px solid var(--cinnabar); }
     .eyebrow { color: var(--cinnabar); font-size: 13px; font-weight: 800; letter-spacing: .16em; }
     .intro h1 {
-      margin: 13px 0 16px;
+      margin: 12px 0 3px;
       font-family: "STKaiti", "KaiTi", serif;
       font-size: clamp(38px, 4vw, 64px);
       line-height: 1.05;
       letter-spacing: .02em;
     }
     .intro h1 span { display: block; color: var(--cinnabar); }
-    .lead { margin: 0; color: var(--ink-soft); font-size: 16px; }
+    .lead { margin: 22px 2px 0; color: var(--ink-soft); font-size: 16px; }
     .mode-copy { margin-top: 30px; padding-top: 24px; border-top: 1px solid var(--line); }
     .mode-copy .index { color: var(--gold); font: 700 13px/1 ui-monospace, monospace; }
     .mode-copy h2 { margin: 8px 0 8px; font-size: 24px; }
@@ -153,7 +186,9 @@
     .legend-item strong { display: block; font-size: 18px; }
     .legend-item span { color: var(--ink-soft); font-size: 12px; }
 
-    .stage { min-height: 690px; padding: 20px; background: linear-gradient(160deg, rgba(255,253,248,.8), rgba(228,218,196,.64)); }
+    .stage { min-height: 690px; padding: 20px; background: linear-gradient(160deg, rgba(255,253,248,.9), rgba(228,218,196,.74)); }
+    .stage > * { position: relative; z-index: 2; }
+    .stage::after { z-index: 1; right: auto; bottom: auto; inset: -35% -60%; width: auto; height: auto; border: 0; border-radius: 0; opacity: .36; background: linear-gradient(110deg, transparent 40%, rgba(255,255,255,.8) 49%, transparent 58%); animation: silkLight 10s ease-in-out infinite; }
     .stage-head { position: relative; z-index: 5; display: flex; justify-content: space-between; align-items: center; gap: 15px; }
     .stage-title { display: flex; align-items: center; gap: 9px; color: var(--ink-soft); font-size: 13px; }
     .view-switch { padding: 4px; display: flex; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.45); }
@@ -247,7 +282,8 @@
     .concept-head h2 { margin: 8px 0 8px; font-family: "STKaiti", "KaiTi", serif; font-size: clamp(32px, 4vw, 52px); }
     .concept-head p { color: var(--ink-soft); }
     .concept-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
-    .concept-card { min-height: 210px; padding: 24px; border: 1px solid var(--line); border-radius: 22px; background: rgba(255,253,248,.56); }
+    .concept-card { position: relative; overflow: hidden; min-height: 210px; padding: 24px; border: 1px solid rgba(121,87,30,.24); border-radius: 22px; background: rgba(255,253,248,.74); box-shadow: 0 14px 35px rgba(64,48,22,.07); backdrop-filter: blur(12px); }
+    .concept-card::after { content: attr(data-mark); position: absolute; right: -2px; bottom: -24px; color: rgba(184,70,53,.06); font: 700 94px/1 "STKaiti", "KaiTi", serif; }
     .concept-card b { display: grid; place-items: center; width: 43px; height: 43px; border-radius: 13px; color: var(--white); background: var(--ink); font-size: 22px; }
     .concept-card h3 { margin: 22px 0 6px; font-size: 20px; }
     .concept-card p { margin: 0; color: var(--ink-soft); font-size: 14px; }
@@ -257,6 +293,7 @@
 
     @keyframes breathe { 50% { transform: scale(1.05); background: rgba(184,70,53,.24); } }
     @keyframes route { to { stroke-dashoffset: -44; } }
+    @keyframes silkLight { 0%, 34% { transform: translateX(-12%); } 66%, 100% { transform: translateX(12%); } }
 
     @media (max-width: 1120px) {
       .workspace { grid-template-columns: 1fr 1.55fr; }
@@ -298,8 +335,10 @@
 
     <section class="workspace" aria-label="互动体验区">
       <article class="panel intro">
-        <span class="eyebrow">TCM CULTURE × ROBOTICS</span>
-        <h1>看得见，<span>也能动起来。</span></h1>
+        <div class="title-slip">
+          <span class="eyebrow">TCM CULTURE × ROBOTICS</span>
+          <h1>看得见，<span>也能动起来。</span></h1>
+        </div>
         <p class="lead">用一具可交互假人，把穴位、动作区域和工具轨迹讲清楚。</p>
         <div class="mode-copy">
           <span class="index" id="modeIndex">01 / POINT</span>
@@ -372,10 +411,10 @@
     <section class="concepts">
       <div class="concept-head"><span class="eyebrow">ONE BODY · FOUR TARGET TYPES</span><h2>一具假人，统一四类任务语言</h2><p>网站先把复杂机器人流程转换成观众一眼能理解的图形，再逐步接入相机和真实动作状态。</p></div>
       <div class="concept-grid">
-        <article class="concept-card"><b>•</b><h3>点</h3><p>穴位和无针针灸使用明确目标点，适合逐一讲解与顺序演示。</p></article>
-        <article class="concept-card"><b>▧</b><h3>区域</h3><p>捶背用左右肩背区域表达，不把连续动作伪装成单一穴位。</p></article>
-        <article class="concept-card"><b>↝</b><h3>路径</h3><p>按摩用方向明确的短路线表达，实时展示进度、速度和剩余时间。</p></article>
-        <article class="concept-card"><b>◎</b><h3>放置位</h3><p>无火罐使用圆形靶位，展示抓取、放置、确认、取回的完整闭环。</p></article>
+        <article class="concept-card" data-mark="穴"><b>•</b><h3>点</h3><p>穴位和无针针灸使用明确目标点，适合逐一讲解与顺序演示。</p></article>
+        <article class="concept-card" data-mark="域"><b>▧</b><h3>区域</h3><p>捶背用左右肩背区域表达，不把连续动作伪装成单一穴位。</p></article>
+        <article class="concept-card" data-mark="循"><b>↝</b><h3>路径</h3><p>按摩用方向明确的短路线表达，实时展示进度、速度和剩余时间。</p></article>
+        <article class="concept-card" data-mark="罐"><b>◎</b><h3>放置位</h3><p>无火罐使用圆形靶位，展示抓取、放置、确认、取回的完整闭环。</p></article>
       </div>
       <div class="boundary"><strong>文化科普与工程示教，而非医疗服务</strong><span>假人专用 · 无针刺 · 无明火 · 不做诊断 · 不宣称疗效</span></div>
     </section>
