@@ -216,14 +216,15 @@
     .view-btn { min-width: 66px; min-height: 35px; border: 0; border-radius: 999px; color: var(--ink-soft); background: transparent; cursor: pointer; }
     .view-btn.active { color: var(--white); background: var(--cinnabar); }
 
-    .body-stage { position: relative; min-height: 545px; height: auto; flex: 1; margin-top: 4px; display: grid; place-items: center; }
+    .body-stage { position: relative; min-height: 650px; height: auto; flex: 1; margin-top: 4px; display: grid; place-items: center; overflow: hidden; }
     .mist { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
     .mist span { position: absolute; width: 62%; height: 13%; border-radius: 50%; background: rgba(255,255,255,.58); filter: blur(22px); opacity: .54; animation: cloudDrift 13s ease-in-out infinite alternate; }
     .mist span:nth-child(1) { left: -22%; top: 23%; }
     .mist span:nth-child(2) { right: -27%; top: 49%; animation-delay: -5s; animation-duration: 17s; }
     .mist span:nth-child(3) { left: 8%; bottom: 13%; width: 45%; animation-delay: -8s; animation-duration: 19s; }
     .halo { position: absolute; width: 72%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, rgba(201,151,62,.18), rgba(201,151,62,.04) 55%, transparent 71%); filter: blur(2px); }
-    .body-svg { width: min(340px, 72%); height: 510px; overflow: visible; filter: drop-shadow(0 25px 35px rgba(54,39,18,.14)); }
+    .body-canvas { position: relative; z-index: 3; width: min(390px, 88%); aspect-ratio: 320 / 520; }
+    .body-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 25px 35px rgba(54,39,18,.14)); }
     .body-fill { fill: #ead4b8; stroke: rgba(23,51,47,.22); stroke-width: 2; }
     .body-line { fill: none; stroke: rgba(131,50,38,.28); stroke-width: 2; stroke-linecap: round; }
     .meridian { fill: none; stroke: rgba(184,70,53,.5); stroke-width: 2.2; stroke-dasharray: 3 8; stroke-linecap: round; }
@@ -234,6 +235,7 @@
     .hotspot {
       position: absolute;
       z-index: 6;
+      pointer-events: auto;
       width: 33px;
       height: 33px;
       display: grid;
@@ -365,12 +367,15 @@
       .top-status > span:not(.signal) { display: none; }
       .audience-switch { display: none; }
       .modebar { grid-template-columns: repeat(5, minmax(94px, 1fr)); overflow-x: auto; }
-      .workspace { grid-template-columns: 1fr; }
-      .intro { min-height: 420px; }
-      .stage { min-height: 620px; }
-      .body-stage { min-height: 520px; }
-      .body-svg { height: 490px; }
+      .workspace { grid-template-columns: 1fr; align-items: start; }
+      .workspace > .panel { height: auto; }
+      .intro { min-height: 0; }
+      .intro .legend { margin-top: 0; }
+      .stage { min-height: 0; }
+      .body-stage { min-height: 570px; }
+      .body-canvas { width: min(340px, 86%); }
       .detail { grid-column: auto; display: flex; }
+      .detail .safety { margin-top: 20px; }
       .concept-grid { grid-template-columns: 1fr; }
       .boundary { align-items: flex-start; flex-direction: column; }
       .hotspot::after { display: none; }
@@ -435,24 +440,26 @@
         <div class="body-stage" id="bodyStage" data-view="back">
           <div class="mist" aria-hidden="true"><span></span><span></span><span></span></div>
           <div class="halo"></div>
-          <svg class="body-svg" viewBox="0 0 320 520" role="img" aria-label="教学假人正背面示意图">
-            <path class="body-fill" d="M126 77c-8-9-13-22-13-36C113 17 131 2 160 2s47 15 47 39c0 14-5 27-13 36l-6 18c23 7 52 13 73 30 19 15 25 46 22 79l-13 272c-1 23-19 40-42 40H92c-23 0-41-17-42-40L37 204c-3-33 3-64 22-79 21-17 50-23 73-30l-6-18Z"/>
-            <path class="body-line" d="M126 78c10 8 22 12 34 12s24-4 34-12M70 150c22 14 47 17 90 17s68-3 90-17M79 268c23-19 47-25 81-25s58 6 81 25"/>
-            <g class="back-detail">
-              <path class="meridian" d="M160 87v346"/>
-              <path class="body-line" d="M82 151c16 32 37 48 66 52M238 151c-16 32-37 48-66 52M97 306c22 13 39 18 63 18s41-5 63-18"/>
-            </g>
-            <g class="front-detail">
-              <path class="meridian" d="M160 91v344"/>
-              <path class="body-line" d="M91 156c21 17 42 23 69 23s48-6 69-23M97 235c20 7 40 10 63 10s43-3 63-10M112 286c12 15 27 23 48 23s36-8 48-23"/>
-              <circle cx="119" cy="185" r="4" fill="#b99073"/><circle cx="201" cy="185" r="4" fill="#b99073"/>
-            </g>
-          </svg>
+          <div class="body-canvas" aria-label="人体躯干穴位坐标视窗">
+            <svg class="body-svg" viewBox="0 0 320 520" role="img" aria-label="按全身比例放大的教学人体躯干示意图">
+              <path class="body-fill" d="M126 77c-8-9-13-22-13-36C113 17 131 2 160 2s47 15 47 39c0 14-5 27-13 36l-6 18c23 7 52 13 73 30 19 15 25 46 22 79l-13 272c-1 23-19 40-42 40H92c-23 0-41-17-42-40L37 204c-3-33 3-64 22-79 21-17 50-23 73-30l-6-18Z"/>
+              <path class="body-line" d="M126 78c10 8 22 12 34 12s24-4 34-12M70 150c22 14 47 17 90 17s68-3 90-17M79 268c23-19 47-25 81-25s58 6 81 25"/>
+              <g class="back-detail">
+                <path class="meridian" d="M160 87v346"/>
+                <path class="body-line" d="M82 151c16 32 37 48 66 52M238 151c-16 32-37 48-66 52M97 306c22 13 39 18 63 18s41-5 63-18"/>
+              </g>
+              <g class="front-detail">
+                <path class="meridian" d="M160 91v344"/>
+                <path class="body-line" d="M91 156c21 17 42 23 69 23s48-6 69-23M97 235c20 7 40 10 63 10s43-3 63-10M112 286c12 15 27 23 48 23s36-8 48-23"/>
+                <circle cx="119" cy="185" r="4" fill="#b99073"/><circle cx="201" cy="185" r="4" fill="#b99073"/>
+              </g>
+            </svg>
 
-          <div id="hotspotLayer" class="layer visible"></div>
-          <div id="tapLayer" class="layer"><div class="tap-zone left"></div><div class="tap-zone right"></div></div>
-          <div id="massageLayer" class="layer"><svg class="route-svg" viewBox="0 0 300 360"><path class="route" d="M94 58c-26 50-21 106 0 146s18 81-3 118"/><path class="route" d="M206 58c26 50 21 106 0 146s-18 81 3 118"/></svg></div>
-          <div id="cuppingLayer" class="layer"><span class="cup-target one"></span><span class="cup-target two"></span><span class="cup-target three"></span></div>
+            <div id="hotspotLayer" class="layer visible"></div>
+            <div id="tapLayer" class="layer"><div class="tap-zone left"></div><div class="tap-zone right"></div></div>
+            <div id="massageLayer" class="layer"><svg class="route-svg" viewBox="0 0 300 360"><path class="route" d="M94 58c-26 50-21 106 0 146s18 81-3 118"/><path class="route" d="M206 58c26 50 21 106 0 146s-18 81 3 118"/></svg></div>
+            <div id="cuppingLayer" class="layer"><span class="cup-target one"></span><span class="cup-target two"></span><span class="cup-target three"></span></div>
+          </div>
         </div>
 
         <div class="stage-footer">
