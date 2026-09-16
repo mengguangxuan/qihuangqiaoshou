@@ -223,8 +223,14 @@
     .mist span:nth-child(2) { right: -27%; top: 49%; animation-delay: -5s; animation-duration: 17s; }
     .mist span:nth-child(3) { left: 8%; bottom: 13%; width: 45%; animation-delay: -8s; animation-duration: 19s; }
     .halo { position: absolute; width: 72%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, rgba(201,151,62,.18), rgba(201,151,62,.04) 55%, transparent 71%); filter: blur(2px); }
-    .body-canvas { position: relative; z-index: 3; width: min(390px, 88%); aspect-ratio: 320 / 520; }
-    .body-svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 22px 30px rgba(54,39,18,.12)); }
+    .body-canvas { position: relative; z-index: 3; width: min(430px, 90%); aspect-ratio: 320 / 520; padding: 13px; overflow: hidden; border: 3px solid var(--cinnabar-dark); background: #f5ead2 url("assets/acupoint-atlas-frame.png") center/cover; box-shadow: inset 0 0 0 6px #f8efd9, inset 0 0 0 8px rgba(159,52,39,.55), 0 22px 36px rgba(54,39,18,.16); }
+    .body-canvas::before, .body-canvas::after { content:""; position:absolute; z-index:4; pointer-events:none; }
+    .body-canvas::before { inset:7px; border:2px solid rgba(159,52,39,.78); }
+    .body-canvas::after { inset:13px; border:1px solid rgba(201,151,62,.55); }
+    .body-atlas { position:absolute; inset:13px; z-index:1; width:calc(100% - 26px); height:calc(100% - 26px); object-fit:cover; object-position:center top; filter:sepia(.08) saturate(.86) contrast(.96); opacity:0; transition:opacity .3s ease; }
+    .body-stage[data-view="back"] .back-atlas, .body-stage[data-view="front"] .front-atlas { opacity:.94; }
+    .back-atlas { object-position:left top; }
+    .front-atlas { object-position:center top; }
     .anatomy-wash { fill: rgba(224,202,169,.24); stroke: none; }
     .anatomy-outline { fill: none; stroke: #31534d; stroke-width: 2.55; stroke-linecap: round; stroke-linejoin: round; }
     .anatomy-major { fill: none; stroke: rgba(49,83,77,.66); stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
@@ -257,7 +263,7 @@
     .hotspot::after { content: attr(data-short); position: absolute; left: 42px; white-space: nowrap; color: var(--ink); font-size: 13px; font-weight: 800; text-shadow: 0 1px 0 var(--white); }
     .hotspot.left-label::after { left: auto; right: 42px; }
 
-    .layer { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .25s ease; }
+    .layer { position: absolute; inset: 13px; z-index:5; pointer-events: none; opacity: 0; transition: opacity .25s ease; }
     .layer.visible { opacity: 1; }
     .tap-zone { position: absolute; top: 31%; width: 16%; height: 27%; border: 2px solid rgba(184,70,53,.5); border-radius: 46% 46% 36% 36%; background: rgba(184,70,53,.14); animation: breathe 1.8s ease-in-out infinite; }
     .tap-zone.left { left: 33.2%; }
@@ -360,6 +366,28 @@
     .boundary strong { font-size: 18px; }
     .boundary span { color: rgba(255,255,255,.76); font-size: 13px; }
 
+    .robot-console { margin: 0 0 34px; padding: clamp(22px,3vw,38px); }
+    .robot-console-head { display:flex; align-items:end; justify-content:space-between; gap:22px; margin-bottom:22px; }
+    .robot-console h2 { margin:7px 0 0; font:700 clamp(28px,3.2vw,43px)/1.2 "STKaiti","KaiTi",serif; }
+    .robot-console-head p { max-width:650px; margin:0; color:var(--ink-soft); line-height:1.75; }
+    .robot-console-grid { display:grid; grid-template-columns:minmax(320px,.72fr) minmax(480px,1.28fr); gap:18px; }
+    .robot-control, .robot-vision { padding:22px; border:2px solid rgba(159,52,39,.38); background:rgba(255,252,242,.68); box-shadow:inset 0 0 0 5px rgba(255,253,248,.7),inset 0 0 0 6px rgba(159,52,39,.13); }
+    .robot-control label { display:block; color:var(--ink-soft); font-size:13px; }
+    .robot-form { margin-top:9px; display:grid; grid-template-columns:1fr auto; gap:9px; }
+    .robot-form select, .robot-form button { min-height:50px; border:1px solid rgba(23,51,47,.2); font:700 15px/1 "STKaiti","KaiTi",serif; }
+    .robot-form select { padding:0 13px; color:var(--ink); background:#fffdf6; }
+    .robot-form button { padding:0 20px; color:#fff; background:var(--cinnabar); cursor:pointer; }
+    .robot-form button:disabled { opacity:.48; cursor:not-allowed; }
+    .robot-status { margin:15px 0 0; padding:12px 13px; border-left:4px solid var(--gold); color:var(--ink-soft); background:rgba(224,210,180,.38); font-size:13px; line-height:1.65; }
+    .robot-open { display:inline-flex; margin-top:13px; color:var(--cinnabar-dark); font-weight:800; text-underline-offset:3px; }
+    .stream-frame { position:relative; aspect-ratio:16/9; overflow:hidden; background:#15231f; }
+    .stream-frame img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
+    .stream-placeholder { position:absolute; inset:0; display:grid; place-items:center; padding:28px; color:#e7dcc0; text-align:center; line-height:1.7; }
+    .stream-placeholder strong { display:block; color:#fffaf0; font:700 24px/1.2 "STKaiti","KaiTi",serif; }
+    .coordinate-list { margin-top:12px; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:7px; }
+    .coordinate-item { min-width:0; padding:9px; border:1px solid rgba(159,52,39,.18); background:rgba(255,253,248,.68); font-size:11px; color:var(--ink-soft); }
+    .coordinate-item strong { display:block; overflow:hidden; color:var(--cinnabar-dark); font-size:13px; white-space:nowrap; text-overflow:ellipsis; }
+
     .sources { margin: 28px 0 45px; padding: 20px 22px; color: var(--ink-soft); font-size: 13px; }
     .sources strong { color: var(--ink); font-family: "STKaiti", "KaiTi", serif; font-size: 17px; }
     .sources a { color: var(--cinnabar-dark); text-underline-offset: 3px; }
@@ -396,6 +424,9 @@
       .concept-head p { margin-top: 18px; padding: 16px 0 0; border-top: 3px double rgba(159,52,39,.42); border-left: 0; }
       .concept-grid { grid-template-columns: 1fr; }
       .boundary { align-items: flex-start; flex-direction: column; }
+      .robot-console-head { align-items:flex-start; flex-direction:column; }
+      .robot-console-grid { grid-template-columns:1fr; }
+      .coordinate-list { grid-template-columns:repeat(2,minmax(0,1fr)); }
       .hotspot::after { display: none; }
     }
     @media (prefers-reduced-motion: reduce) {
@@ -458,27 +489,9 @@
         <div class="body-stage" id="bodyStage" data-view="back">
           <div class="mist" aria-hidden="true"><span></span><span></span><span></span></div>
           <div class="halo"></div>
-          <div class="body-canvas" aria-label="人体躯干穴位坐标视窗">
-            <svg class="body-svg" viewBox="0 0 320 520" role="img" aria-label="医学图谱风格人体正背面线描，显示头颈、躯干与四肢比例">
-              <path class="anatomy-wash" d="M160 8c-22 0-36 16-36 40-5 0-7 5-4 13 1 5 5 7 8 7 4 14 13 23 24 26v11c-7 5-13 8-20 9-24 2-44 5-58 15-14 10-20 22-23 37L34 266c-4 18-9 35-8 50 1 12 6 20 13 20 8 0 12-10 15-21l19-80c4-16 8-36 13-54l6 36c6 33 7 61 2 92-4 25-6 48 2 70 9 21 14 50 15 81l1 80h96l1-80c1-31 6-60 15-81 8-22 6-45 2-70-5-31-4-59 2-92l6-36c5 18 9 38 13 54l19 80c3 11 7 21 15 21 7 0 12-8 13-20 1-15-4-32-8-50l-17-100c-3-15-9-27-23-37-14-10-34-13-58-15-7-1-13-4-20-9V94c11-3 20-12 24-26 3 0 7-2 8-7 3-8 1-13-4-13 0-24-14-40-36-40Z"/>
-              <path class="anatomy-outline" d="M160 8c-22 0-36 16-36 40-5 0-7 5-4 13 1 5 5 7 8 7 4 14 13 23 24 26v11c-7 5-13 8-20 9-24 2-44 5-58 15-14 10-20 22-23 37L34 266c-4 18-9 35-8 50 1 12 6 20 13 20 8 0 12-10 15-21l19-80c4-16 8-36 13-54l6 36c6 33 7 61 2 92-4 25-6 48 2 70 9 21 14 50 15 81l1 80M208 540l1-80c1-31 6-60 15-81 8-22 6-45 2-70-5-31-4-59 2-92l6-36c5 18 9 38 13 54l19 80c3 11 7 21 15 21 7 0 12-8 13-20 1-15-4-32-8-50l-17-100c-3-15-9-27-23-37-14-10-34-13-58-15-7-1-13-4-20-9V94c11-3 20-12 24-26 3 0 7-2 8-7 3-8 1-13-4-13 0-24-14-40-36-40"/>
-              <path class="anatomy-major" d="M152 94c5 2 11 3 16 0M152 105c2 8 4 12 8 12s6-4 8-12M86 181c8-22 20-38 37-48M234 181c-8-22-20-38-37-48M92 217c-9 25-14 48-15 70M228 217c9 25 14 48 15 70M96 379c16 9 37 13 64 13s48-4 64-13M160 392c-8 16-12 37-13 62l-2 66M160 392c8 16 12 37 13 62l2 66M35 302c6 5 12 7 18 4M285 302c-6 5-12 7-18 4M31 315c5 4 10 5 15 2M289 315c-5 4-10 5-15 2"/>
-              <g class="back-detail">
-                <path class="meridian" d="M160 101v270"/>
-                <path class="anatomy-major" d="M137 105c-9 19-27 25-50 31M183 105c9 19 27 25 50 31M160 116c-17 11-29 30-36 53-6 20-5 39-1 56M160 116c17 11 29 30 36 53 6 20 5 39 1 56M124 169c-19 14-25 35-23 59 2 19 10 34 24 45M196 169c19 14 25 35 23 59-2 19-10 34-24 45M126 273c-12 19-17 40-16 63M194 273c12 19 17 40 16 63M113 337c17 9 32 13 47 13s30-4 47-13"/>
-                <path class="anatomy-fine" d="M132 128c-13 8-20 20-23 37M188 128c13 8 20 20 23 37M114 188c10 8 20 12 31 13M206 188c-10 8-20 12-31 13M111 303c14 8 30 12 49 12s35-4 49-12M124 358c8 4 16 6 24 7M196 358c-8 4-16 6-24 7"/>
-                <path class="anatomy-hatch" d="M105 146l13 7m-17 3 14 7m100-17-13 7m17 3-14 7M105 236l14 6m96-6-14 6M119 319l11 4m71-4-11 4"/>
-                <circle class="anatomy-landmark" cx="160" cy="101" r="2.4"/>
-              </g>
-              <g class="front-detail">
-                <path class="meridian" d="M160 108v276"/>
-                <path class="anatomy-major" d="M138 108c-9 10-19 16-31 19M182 108c9 10 19 16 31 19M108 128c11 16 28 23 52 23s41-7 52-23M103 165c15-8 31-10 47-5M217 165c-15-8-31-10-47-5M109 205c16 8 33 12 51 12s35-4 51-12M111 245c10 13 17 27 20 43M209 245c-10 13-17 27-20 43M110 311c14 8 31 12 50 12s36-4 50-12M106 344c13 12 27 19 43 22M214 344c-13 12-27 19-43 22"/>
-                <path class="anatomy-fine" d="M145 43c4-2 8-3 12-1m6 0c4-2 8-1 12 1M158 49c-2 8-2 14 1 18l5 1M150 76c7 3 14 3 21 0M146 113c3 8 8 12 14 12s11-4 14-12M121 175c11 7 21 10 31 8M199 175c-11 7-21 10-31 8M160 217v88M151 287c5 3 13 3 18 0"/>
-                <path class="anatomy-hatch" d="M113 138l14 5m-18 5 15 5m83-15-14 5m18 5-15 5M117 229l15 5m71-5-15 5M119 330l13 5m69-5-13 5"/>
-                <circle class="anatomy-landmark" cx="160" cy="286" r="2.5"/>
-              </g>
-            </svg>
-
+          <div class="body-canvas" aria-label="真人经络古图躯干穴位坐标视窗">
+            <img class="body-atlas back-atlas" src="assets/acupoint-back.png" alt="背面经络穴位图">
+            <img class="body-atlas front-atlas" src="assets/acupoint-front.png" alt="正面经络穴位图">
             <div id="hotspotLayer" class="layer visible"></div>
             <div id="tapLayer" class="layer"><div class="tap-zone left"></div><div class="tap-zone right"></div></div>
             <div id="massageLayer" class="layer"><svg class="route-svg" viewBox="0 0 300 360"><path class="route" d="M94 58c-26 50-21 106 0 146s18 81-3 118"/><path class="route" d="M206 58c26 50 21 106 0 146s-18 81 3 118"/></svg></div>
@@ -545,24 +558,42 @@
       </div>
       <div class="boundary"><strong>以文化理解身体，以科技守住边界</strong><span>无针刺 · 无明火 · 不做诊断 · 不替代医疗建议 · 真人体验需现场指导</span></div>
     </section>
-    <footer class="sources book-leaf"><strong>资料依据</strong>　穴位名称与定位参照 <a href="https://www.who.int/publications/i/item/9290611057" target="_blank" rel="noreferrer">WHO 标准针灸命名</a>及标准定位资料；经络古图来自 <a href="https://commons.wikimedia.org/wiki/File:Anterior_and_posterior_whole-body_acu-moxa_charts,_Chinese_Wellcome_L0037879.jpg" target="_blank" rel="noreferrer">Wellcome Collection / Wikimedia Commons</a>，CC BY 4.0；中央人体线描参考 1918 年公版 <a href="https://commons.wikimedia.org/wiki/File:Surface_anatomy_of_the_back-Gray.png" target="_blank" rel="noreferrer">Gray's Anatomy 背面体表图</a>与<a href="https://commons.wikimedia.org/wiki/File:Gray_abdomen_front_surface_en.png" target="_blank" rel="noreferrer">腹面体表图</a>重新绘制。穴名释义采用面向公众的文化性解释，不作为诊断或治疗依据。</footer>
+    <section class="robot-console book-leaf" id="robotConsole">
+      <div class="robot-console-head">
+        <div><span class="eyebrow">假人寻穴 · 真机演示</span><h2>选一处穴位，让左臂循序指向</h2></div>
+        <p>五枚 AprilTag 建立假人背部坐标系，相机画面实时推算五处穴位。每个穴位都有独立的“上场—接近—指向—撤离”关键帧流程。</p>
+      </div>
+      <div class="robot-console-grid">
+        <div class="robot-control">
+          <label for="robotPointSelect">选择演示穴位</label>
+          <div class="robot-form"><select id="robotPointSelect"><option value="GV14">大椎 · GV14</option><option value="SI11-L">左天宗 · SI11-L</option><option value="SI11-R">右天宗 · SI11-R</option><option value="BL23-L">左肾俞 · BL23-L</option><option value="BL23-R">右肾俞 · BL23-R</option></select><button id="robotExecute" type="button">执行动作</button></div>
+          <div class="robot-status" id="robotStatus">正在寻找本机视觉与机械臂服务……</div>
+          <a class="robot-open" id="robotOpenLocal" href="http://127.0.0.1:8091" target="_blank" rel="noreferrer">打开本机寻穴控制台 →</a>
+        </div>
+        <div class="robot-vision">
+          <div class="stream-frame"><img id="robotVideo" alt="Gemini 2 实时穴位画面"><div class="stream-placeholder" id="streamPlaceholder"><div><strong>等待本机视频流</strong>先启动 FiveFinger 的穴位服务；线上页面受浏览器安全策略限制时，请打开本机控制台观看和执行。</div></div></div>
+          <div class="coordinate-list" id="coordinateList"><div class="coordinate-item"><strong>实时坐标</strong>定位后显示</div></div>
+        </div>
+      </div>
+    </section>
+    <footer class="sources book-leaf"><strong>资料依据</strong>　穴位名称与定位参照 <a href="https://www.who.int/publications/i/item/9290611057" target="_blank" rel="noreferrer">WHO 标准针灸命名</a>及标准定位资料；经络古图来自 <a href="https://commons.wikimedia.org/wiki/File:Anterior_and_posterior_whole-body_acu-moxa_charts,_Chinese_Wellcome_L0037879.jpg" target="_blank" rel="noreferrer">Wellcome Collection / Wikimedia Commons</a>，CC BY 4.0；中央正背面人体图采用项目提供的国家标准经穴部位挂图作科普示意，交互点位采用独立比例坐标固定在同一图层中。穴名释义面向公众，不作为诊断或治疗依据。</footer>
   </main>
 
   <script>
     const pointSets = {
       back: [
-        { id: 'GV14', name: '大椎', channel: '督脉', x: 50, y: 19, description: '位于颈背交界的后正中线，第七颈椎棘突下方凹陷处。', meaning: '“大”有显著、重要之意，“椎”指椎骨；穴位在颈背较突出的椎骨下方，名称由位置而来。', tradition: '传统经络理论把它视为督脉与多条阳经的交会处，常用来讲解“诸阳之会”的观念。', history: '古代穴名常依部位与形态取象；大椎见于早期针灸文献，是典型的依骨骼标志命名。' },
-        { id: 'SI11-L', name: '左天宗', channel: '手太阳小肠经', x: 40, y: 38, description: '位于左侧肩胛冈下窝中央区域，是肩背定位的重要参照。', meaning: '“天”常指人体上部，“宗”有汇聚、归属之意，古人以此描绘肩胛中央这一上部汇聚之处。', tradition: '传统上归属手太阳小肠经，可帮助初学者认识肩胛区经脉循行与局部取穴。', history: '穴名采用古代常见的天地取象与方位表达；这里的解释属于文化释名，并非现代解剖学命名。', left: true },
-        { id: 'SI11-R', name: '右天宗', channel: '手太阳小肠经', x: 60, y: 38, description: '位于右侧肩胛冈下窝中央区域，与左天宗形成对称参照。', meaning: '“天”常指人体上部，“宗”有汇聚、归属之意，古人以此描绘肩胛中央这一上部汇聚之处。', tradition: '传统上归属手太阳小肠经，可帮助初学者认识肩胛区经脉循行与局部取穴。', history: '穴名采用古代常见的天地取象与方位表达；这里的解释属于文化释名，并非现代解剖学命名。' },
-        { id: 'BL23-L', name: '左肾俞', channel: '足太阳膀胱经', x: 43, y: 62, description: '位于左侧腰背部，约在第二腰椎棘突下旁开区域。', meaning: '“肾”表示传统脏腑理论中的对应关系，“俞”有输注、转输之意，故名肾俞。', tradition: '传统上属足太阳膀胱经的肾背俞穴，是理解“背俞穴与脏腑对应”体系的典型例子。', history: '背俞穴以脏腑名称配合“俞”字构成，是古代经络分类与命名体系的重要组成。', left: true },
-        { id: 'BL23-R', name: '右肾俞', channel: '足太阳膀胱经', x: 57, y: 62, description: '位于右侧腰背部，与左肾俞形成对称参照。', meaning: '“肾”表示传统脏腑理论中的对应关系，“俞”有输注、转输之意，故名肾俞。', tradition: '传统上属足太阳膀胱经的肾背俞穴，是理解“背俞穴与脏腑对应”体系的典型例子。', history: '背俞穴以脏腑名称配合“俞”字构成，是古代经络分类与命名体系的重要组成。' }
+        { id: 'GV14', name: '大椎', channel: '督脉', x: 31, y: 30, description: '位于颈背交界的后正中线，第七颈椎棘突下方凹陷处。', meaning: '“大”有显著、重要之意，“椎”指椎骨；穴位在颈背较突出的椎骨下方，名称由位置而来。', tradition: '传统经络理论把它视为督脉与多条阳经的交会处，常用来讲解“诸阳之会”的观念。', history: '古代穴名常依部位与形态取象；大椎见于早期针灸文献，是典型的依骨骼标志命名。' },
+        { id: 'SI11-L', name: '左天宗', channel: '手太阳小肠经', x: 22, y: 43, description: '位于左侧肩胛冈下窝中央区域，是肩背定位的重要参照。', meaning: '“天”常指人体上部，“宗”有汇聚、归属之意，古人以此描绘肩胛中央这一上部汇聚之处。', tradition: '传统上归属手太阳小肠经，可帮助初学者认识肩胛区经脉循行与局部取穴。', history: '穴名采用古代常见的天地取象与方位表达；这里的解释属于文化释名，并非现代解剖学命名。', left: true },
+        { id: 'SI11-R', name: '右天宗', channel: '手太阳小肠经', x: 42, y: 43, description: '位于右侧肩胛冈下窝中央区域，与左天宗形成对称参照。', meaning: '“天”常指人体上部，“宗”有汇聚、归属之意，古人以此描绘肩胛中央这一上部汇聚之处。', tradition: '传统上归属手太阳小肠经，可帮助初学者认识肩胛区经脉循行与局部取穴。', history: '穴名采用古代常见的天地取象与方位表达；这里的解释属于文化释名，并非现代解剖学命名。' },
+        { id: 'BL23-L', name: '左肾俞', channel: '足太阳膀胱经', x: 26, y: 64, description: '位于左侧腰背部，约在第二腰椎棘突下旁开区域。', meaning: '“肾”表示传统脏腑理论中的对应关系，“俞”有输注、转输之意，故名肾俞。', tradition: '传统上属足太阳膀胱经的肾背俞穴，是理解“背俞穴与脏腑对应”体系的典型例子。', history: '背俞穴以脏腑名称配合“俞”字构成，是古代经络分类与命名体系的重要组成。', left: true },
+        { id: 'BL23-R', name: '右肾俞', channel: '足太阳膀胱经', x: 37, y: 64, description: '位于右侧腰背部，与左肾俞形成对称参照。', meaning: '“肾”表示传统脏腑理论中的对应关系，“俞”有输注、转输之意，故名肾俞。', tradition: '传统上属足太阳膀胱经的肾背俞穴，是理解“背俞穴与脏腑对应”体系的典型例子。', history: '背俞穴以脏腑名称配合“俞”字构成，是古代经络分类与命名体系的重要组成。' }
       ],
       front: [
-        { id: 'CV17', name: '膻中', channel: '任脉', x: 50, y: 37, description: '位于胸部前正中线，约在两乳头连线的中点区域。', meaning: '“膻”在古代语境中与胸部相关，“中”表示中央，名称直接提示它位于前胸中央。', tradition: '传统理论称其为“气会”，亦为心包募穴，常用于讲解胸中气机的概念。', history: '膻中是依身体部位命名的代表，古籍中也可见“元儿”等别名记录。' },
-        { id: 'CV12', name: '中脘', channel: '任脉', x: 50, y: 50, description: '位于上腹部前正中线，处于胸剑联合与脐中连线的中点区域。', meaning: '“脘”指胃所在的上腹区域，“中”表示居中，因此称中脘。', tradition: '传统上为胃的募穴，并列为“腑会”，适合用来认识腹部募穴体系。', history: '中脘以部位直接命名，体现古代穴名追求“听名可知大致所在”的特点。' },
-        { id: 'ST25-L', name: '左天枢', channel: '足阳明胃经', x: 43, y: 58, description: '位于脐中左侧，是腹部横向定位的一对代表性穴位。', meaning: '“枢”意为枢纽、转轴；穴位在脐旁，古人将其取象为身体上下联系的枢纽。', tradition: '传统上为大肠募穴，常用于讲解腹部募穴与脐旁比例定位。', history: '“天枢”是典型的宇宙观取象式穴名，把人体中部比作天地升降转接的轴心。', left: true },
-        { id: 'ST25-R', name: '右天枢', channel: '足阳明胃经', x: 57, y: 58, description: '位于脐中右侧，与左天枢构成左右对称参照。', meaning: '“枢”意为枢纽、转轴；穴位在脐旁，古人将其取象为身体上下联系的枢纽。', tradition: '传统上为大肠募穴，常用于讲解腹部募穴与脐旁比例定位。', history: '“天枢”是典型的宇宙观取象式穴名，把人体中部比作天地升降转接的轴心。' },
-        { id: 'CV4', name: '关元', channel: '任脉', x: 50, y: 69, description: '位于下腹部前正中线，约在脐下三寸的比例位置。', meaning: '“关”有门户之意，“元”指本原；名称以“本原之门”的意象表达传统认识。', tradition: '传统上为小肠募穴，也是任脉与足三阴经交会穴之一，用于讲解下腹正中与“元气”意象。', history: '关元是哲学取象式穴名的代表，反映古人以“关”“元”等观念理解身体的方式。' }
+        { id: 'CV17', name: '膻中', channel: '任脉', x: 50, y: 31, description: '位于胸部前正中线，约在两乳头连线的中点区域。', meaning: '“膻”在古代语境中与胸部相关，“中”表示中央，名称直接提示它位于前胸中央。', tradition: '传统理论称其为“气会”，亦为心包募穴，常用于讲解胸中气机的概念。', history: '膻中是依身体部位命名的代表，古籍中也可见“元儿”等别名记录。' },
+        { id: 'CV12', name: '中脘', channel: '任脉', x: 50, y: 43, description: '位于上腹部前正中线，处于胸剑联合与脐中连线的中点区域。', meaning: '“脘”指胃所在的上腹区域，“中”表示居中，因此称中脘。', tradition: '传统上为胃的募穴，并列为“腑会”，适合用来认识腹部募穴体系。', history: '中脘以部位直接命名，体现古代穴名追求“听名可知大致所在”的特点。' },
+        { id: 'ST25-L', name: '左天枢', channel: '足阳明胃经', x: 45, y: 50, description: '位于脐中左侧，是腹部横向定位的一对代表性穴位。', meaning: '“枢”意为枢纽、转轴；穴位在脐旁，古人将其取象为身体上下联系的枢纽。', tradition: '传统上为大肠募穴，常用于讲解腹部募穴与脐旁比例定位。', history: '“天枢”是典型的宇宙观取象式穴名，把人体中部比作天地升降转接的轴心。', left: true },
+        { id: 'ST25-R', name: '右天枢', channel: '足阳明胃经', x: 55, y: 50, description: '位于脐中右侧，与左天枢构成左右对称参照。', meaning: '“枢”意为枢纽、转轴；穴位在脐旁，古人将其取象为身体上下联系的枢纽。', tradition: '传统上为大肠募穴，常用于讲解腹部募穴与脐旁比例定位。', history: '“天枢”是典型的宇宙观取象式穴名，把人体中部比作天地升降转接的轴心。' },
+        { id: 'CV4', name: '关元', channel: '任脉', x: 50, y: 59, description: '位于下腹部前正中线，约在脐下三寸的比例位置。', meaning: '“关”有门户之意，“元”指本原；名称以“本原之门”的意象表达传统认识。', tradition: '传统上为小肠募穴，也是任脉与足三阴经交会穴之一，用于讲解下腹正中与“元气”意象。', history: '关元是哲学取象式穴名的代表，反映古人以“关”“元”等观念理解身体的方式。' }
       ]
     };
 
@@ -832,6 +863,49 @@
       render();
     }
 
+    const localRobotBase = 'http://127.0.0.1:8091';
+    let localRobotConnected = false;
+    let localRobotStatus = null;
+
+    function updateLocalRobotLink() {
+      const code = $('robotPointSelect').value;
+      $('robotOpenLocal').href = `${localRobotBase}/?point=${encodeURIComponent(code)}`;
+    }
+
+    function renderRobotStatus(status) {
+      localRobotConnected = true;
+      localRobotStatus = status;
+      const selected = status.flows?.find(item => item.code === $('robotPointSelect').value);
+      const action = status.action || {};
+      const ready = Boolean(status.tracking && selected?.ready && action.enabled && !action.running);
+      $('robotExecute').disabled = !ready;
+      $('robotExecute').textContent = action.running ? '动作执行中' : '执行动作';
+      const vision = status.tracking ? `视觉定位稳定（${status.fps} fps）` : '视觉尚未稳定';
+      const taught = selected?.ready ? '该穴位关键帧已就绪' : `待示教：${selected?.missing?.join('、') || '未读取'}`;
+      $('robotStatus').textContent = `${vision}；${taught}；${action.message || ''}`;
+      $('coordinateList').innerHTML = (status.acupoints || []).map(item => `<div class="coordinate-item"><strong>${item.name} ${item.code}</strong>画面 (${item.x_px}, ${item.y_px})</div>`).join('') || '<div class="coordinate-item"><strong>实时坐标</strong>定位后显示</div>';
+      if (!$('robotVideo').src) {
+        $('robotVideo').src = `${localRobotBase}/stream.mjpg`;
+        $('streamPlaceholder').style.display = 'none';
+      }
+    }
+
+    async function refreshRobotBridge() {
+      try {
+        const response = await fetch(`${localRobotBase}/status.json`, { cache:'no-store', signal:AbortSignal.timeout(900) });
+        if (!response.ok) throw new Error('status');
+        renderRobotStatus(await response.json());
+      } catch (_) {
+        localRobotConnected = false;
+        localRobotStatus = null;
+        $('robotExecute').disabled = false;
+        $('robotExecute').textContent = '转到本机执行';
+        $('robotStatus').textContent = location.protocol === 'https:'
+          ? '线上展馆不能直接读取电脑上的 HTTP 相机流。请打开本机控制台；选择的穴位会自动带过去。'
+          : '尚未发现本机服务。请先在 FiveFinger-master 中启动穴位演示。';
+      }
+    }
+
     document.querySelectorAll('.mode-btn').forEach(btn => btn.onclick = () => {
       stopPlayback(); window.speechSynthesis?.cancel(); currentMode = btn.dataset.mode; currentIndex = 0;
       if (['tap','massage','cupping'].includes(currentMode)) currentView = 'back';
@@ -848,7 +922,28 @@
     $('voiceButton').onclick = () => window.speechSynthesis?.speaking ? window.speechSynthesis.cancel() : speak();
     $('headerVoice').onclick = () => { document.querySelector('.detail').scrollIntoView({ behavior: 'smooth', block: 'center' }); speak(); };
     $('micButton').onclick = beginVoiceQuestion;
+    $('robotPointSelect').onchange = () => { updateLocalRobotLink(); if (localRobotStatus) renderRobotStatus(localRobotStatus); };
+    $('robotExecute').onclick = async () => {
+      updateLocalRobotLink();
+      if (!localRobotConnected) {
+        window.open($('robotOpenLocal').href, '_blank', 'noopener');
+        return;
+      }
+      $('robotExecute').disabled = true;
+      $('robotStatus').textContent = '正在提交受保护动作……';
+      try {
+        const response = await fetch(`${localRobotBase}/api/execute`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ point:$('robotPointSelect').value }) });
+        const result = await response.json();
+        $('robotStatus').textContent = result.ok ? result.action.message : `未执行：${result.error}`;
+      } catch (_) {
+        $('robotStatus').textContent = '本机服务连接中断，没有确认动作已提交。请到本机控制台核对。';
+      }
+      window.setTimeout(refreshRobotBridge, 400);
+    };
     window.speechSynthesis?.addEventListener?.('voiceschanged', () => {});
+    updateLocalRobotLink();
+    window.setInterval(refreshRobotBridge, 1200);
+    refreshRobotBridge();
     render();
   </script>
 </body>
