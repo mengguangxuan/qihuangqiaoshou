@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="岐黄巧手中医文化与康养教学互动平台 UI 原型">
-  <title>岐黄巧手 · 互动教学台</title>
+  <meta name="description" content="岐黄巧手中医文化具身交互馆：真人经络古图、穴位语音讲解与安全体验。">
+  <title>岐黄巧手 · 中医文化交互馆</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%23152f2b'/%3E%3Ccircle cx='32' cy='32' r='20' fill='none' stroke='%23d9a441' stroke-width='3'/%3E%3Cpath d='M20 32h24M32 20v24' stroke='%23f6efe1' stroke-width='3' stroke-linecap='round'/%3E%3Ccircle cx='32' cy='32' r='5' fill='%23b84635'/%3E%3C/svg%3E">
   <style>
     :root {
@@ -140,10 +140,10 @@
     .panel {
       position: relative;
       overflow: hidden;
-      border: 1px solid rgba(121,87,30,.25);
+      border: 2px solid rgba(159,52,39,.42);
       border-radius: var(--radius);
       background: rgba(255,253,248,.78);
-      box-shadow: var(--shadow);
+      box-shadow: var(--shadow), inset 0 0 0 5px rgba(255,253,248,.66), inset 0 0 0 6px rgba(159,52,39,.18);
       backdrop-filter: blur(16px);
     }
     .panel::before, .panel::after {
@@ -155,18 +155,27 @@
       pointer-events: none;
       opacity: .75;
     }
-    .panel::before { left: 12px; top: 12px; border-left: 2px solid var(--gold); border-top: 2px solid var(--gold); border-radius: 7px 0 0; }
-    .panel::after { right: 12px; bottom: 12px; border-right: 2px solid var(--gold); border-bottom: 2px solid var(--gold); border-radius: 0 0 7px; }
+    .panel::before { left: 12px; top: 12px; border-left: 2px solid var(--cinnabar); border-top: 2px solid var(--cinnabar); border-radius: 7px 0 0; }
+    .panel::after { right: 12px; bottom: 12px; border-right: 2px solid var(--cinnabar); border-bottom: 2px solid var(--cinnabar); border-radius: 0 0 7px; }
+
+    .book-leaf {
+      position: relative;
+      border: 2px solid rgba(159,52,39,.58);
+      background:
+        repeating-linear-gradient(90deg, transparent 0 42px, rgba(184,70,53,.055) 42px 43px),
+        rgba(255,252,242,.78);
+      box-shadow: inset 0 0 0 5px rgba(255,253,248,.72), inset 0 0 0 6px rgba(159,52,39,.25), 0 10px 24px rgba(72,52,20,.07);
+    }
 
     .intro { padding: 30px 28px; display: flex; flex-direction: column; background: linear-gradient(155deg, rgba(255,253,248,.9), rgba(238,224,194,.76)); }
     .title-slip {
       position: relative;
       padding: 24px 20px 22px;
-      border: 1px solid rgba(131,50,38,.28);
+      border: 2px solid rgba(159,52,39,.62);
       background:
         linear-gradient(90deg, rgba(131,50,38,.06), transparent 12%, transparent 88%, rgba(131,50,38,.06)),
         rgba(250,243,226,.62);
-      box-shadow: inset 0 0 0 4px rgba(255,253,248,.45), 0 12px 28px rgba(72,52,20,.08);
+      box-shadow: inset 0 0 0 5px rgba(255,253,248,.62), inset 0 0 0 6px rgba(159,52,39,.28), 0 12px 28px rgba(72,52,20,.08);
     }
     .title-slip::before, .title-slip::after { content: ""; position: absolute; left: 12px; right: 12px; height: 7px; border-left: 1px solid var(--cinnabar); border-right: 1px solid var(--cinnabar); opacity: .65; }
     .title-slip::before { top: -4px; border-top: 1px solid var(--cinnabar); }
@@ -180,26 +189,26 @@
       letter-spacing: .02em;
     }
     .intro h1 span { display: block; color: var(--cinnabar); }
-    .lead { margin: 22px 2px 0; color: var(--ink-soft); font-size: 16px; }
+    .lead { margin: 22px 0 0; padding: 17px 19px; color: var(--ink-soft); font-size: 16px; }
     .meridian-reference { position: relative; margin: 23px 0 0; overflow: hidden; border: 1px solid rgba(121,87,30,.27); border-radius: 17px; background: #d8cfb9; box-shadow: inset 0 0 0 5px rgba(255,253,248,.32); }
     .meridian-reference img { display: block; width: 100%; height: 342px; object-fit: cover; object-position: center; filter: sepia(.14) saturate(.78) contrast(.96); mix-blend-mode: multiply; }
     .meridian-reference::after { content: "古图参照"; position: absolute; top: 12px; right: 12px; padding: 5px 9px; border: 1px solid rgba(255,255,255,.45); border-radius: 8px; color: var(--white); background: rgba(131,50,38,.88); font: 700 13px/1.2 "STKaiti", "KaiTi", serif; letter-spacing: .12em; }
     .meridian-reference figcaption { padding: 11px 13px 12px; color: var(--ink-soft); background: rgba(255,253,248,.88); font-size: 12px; line-height: 1.45; }
     .meridian-reference a { color: var(--cinnabar-dark); text-underline-offset: 3px; }
-    .mode-copy { margin-top: 30px; padding-top: 24px; border-top: 1px solid var(--line); }
+    .mode-copy { margin-top: 24px; padding: 19px 20px; }
     .mode-copy .index { color: var(--gold); font: 700 13px/1 ui-monospace, monospace; }
     .mode-copy h2 { margin: 8px 0 8px; font-size: 24px; }
     .mode-copy p { margin: 0; color: var(--ink-soft); font-size: 14px; }
 
     .legend { margin-top: auto; padding-top: 20px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-    .legend-item { padding: 12px; border-radius: 14px; background: rgba(23,51,47,.045); }
+    .legend-item { padding: 12px; border: 1px solid rgba(159,52,39,.25); border-radius: 4px; background: rgba(255,252,242,.72); box-shadow: inset 0 0 0 3px rgba(159,52,39,.06); }
     .legend-item strong { display: block; font-size: 18px; }
     .legend-item span { color: var(--ink-soft); font-size: 12px; }
 
     .stage { min-height: 690px; padding: 20px; background: linear-gradient(160deg, rgba(255,253,248,.9), rgba(228,218,196,.74)); }
     .stage > * { position: relative; z-index: 2; }
     .stage::after { z-index: 1; right: auto; bottom: auto; inset: -35% -60%; width: auto; height: auto; border: 0; border-radius: 0; opacity: .36; background: linear-gradient(110deg, transparent 40%, rgba(255,255,255,.8) 49%, transparent 58%); animation: silkLight 10s ease-in-out infinite; }
-    .stage-head { position: relative; z-index: 5; display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+    .stage-head { position: relative; z-index: 5; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; gap: 15px; border: 1px solid rgba(159,52,39,.28); background: rgba(255,252,242,.7); box-shadow: inset 0 0 0 3px rgba(159,52,39,.07); }
     .stage-title { display: flex; align-items: center; gap: 9px; color: var(--ink-soft); font-size: 13px; }
     .view-switch { padding: 4px; display: flex; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.45); }
     .view-btn { min-width: 66px; min-height: 35px; border: 0; border-radius: 999px; color: var(--ink-soft); background: transparent; cursor: pointer; }
@@ -252,7 +261,7 @@
     .cup-target.two { right: 35%; top: 37%; }
     .cup-target.three { left: calc(50% - 29px); top: 58%; }
 
-    .stage-footer { position: absolute; left: 22px; right: 22px; bottom: 18px; z-index: 8; display: flex; align-items: center; gap: 12px; }
+    .stage-footer { position: absolute; left: 22px; right: 22px; bottom: 18px; z-index: 8; padding: 10px 12px; display: flex; align-items: center; gap: 12px; border: 1px solid rgba(159,52,39,.28); background: rgba(255,252,242,.82); box-shadow: inset 0 0 0 3px rgba(159,52,39,.07), 0 8px 18px rgba(72,52,20,.08); }
     .primary-btn {
       min-height: 50px;
       padding: 0 22px;
@@ -271,10 +280,12 @@
     .detail { padding: 25px; display: flex; flex-direction: column; }
     .status-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
     .status-pill { padding: 6px 10px; border-radius: 999px; color: #2e7656; background: rgba(61,150,104,.11); font-size: 12px; font-weight: 800; }
-    .detail h2 { margin: 22px 0 2px; font-family: "STKaiti", "KaiTi", serif; font-size: 33px; }
+    .target-leaf { margin-top: 18px; padding: 18px 19px 8px; }
+    .detail h2 { margin: 0 0 2px; font-family: "STKaiti", "KaiTi", serif; font-size: 33px; }
     .code { color: var(--cinnabar); font: 700 13px/1.5 ui-monospace, monospace; letter-spacing: .08em; }
     .detail-copy { margin: 18px 0 0; color: var(--ink-soft); font-size: 14px; }
-    .voice-agent { margin-top: 18px; padding: 15px; border: 1px solid rgba(201,151,62,.34); border-radius: 18px; background: linear-gradient(145deg, rgba(252,247,233,.95), rgba(233,219,187,.75)); box-shadow: inset 0 0 0 3px rgba(255,255,255,.3); }
+    .voice-agent { margin-top: 18px; padding: 6px; border: 2px solid rgba(159,52,39,.58); background: rgba(250,243,226,.78); box-shadow: inset 0 0 0 5px rgba(255,253,248,.68), inset 0 0 0 6px rgba(159,52,39,.22); }
+    .voice-intro { padding: 14px 13px 13px; }
     .agent-head { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 11px; }
     .agent-seal { width: 39px; height: 39px; display: grid; place-items: center; border-radius: 11px; color: var(--white); background: var(--cinnabar); font: 700 20px/1 "STKaiti", "KaiTi", serif; }
     .agent-head strong { display: block; font-family: "STKaiti", "KaiTi", serif; font-size: 18px; letter-spacing: .08em; }
@@ -286,16 +297,24 @@
     .voice-agent.speaking .sound-bars i:nth-child(2) { animation-delay: -.3s; }
     .voice-agent.speaking .sound-bars i:nth-child(3) { animation-delay: -.55s; }
     .agent-answer { min-height: 66px; margin: 13px 0 11px; padding: 11px 12px; border-left: 3px solid var(--cinnabar); color: var(--ink-soft); background: rgba(255,253,248,.52); font-size: 14px; line-height: 1.65; }
-    .agent-asks { display: flex; flex-wrap: wrap; gap: 7px; }
+    .question-desk { padding: 14px 13px 13px; border-top: 3px double rgba(159,52,39,.48); background: rgba(255,252,242,.5); }
+    .question-title { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+    .question-title strong { font-family: "STKaiti", "KaiTi", serif; font-size: 18px; letter-spacing: .08em; }
+    .question-title span, .question-tip { color: var(--ink-soft); font-size: 12px; }
+    .question-tip { margin: 9px 0 7px; }
+    .question-examples { display: grid; gap: 6px; }
     .ask-chip, .mic-btn { min-height: 34px; padding: 0 10px; border: 1px solid rgba(23,51,47,.13); border-radius: 999px; color: var(--ink); background: rgba(255,253,248,.62); cursor: pointer; font-size: 12px; }
     .ask-chip:hover, .mic-btn:hover { border-color: var(--cinnabar); color: var(--cinnabar-dark); }
-    .mic-btn { margin-left: auto; color: var(--cinnabar-dark); }
+    .ask-chip { width: 100%; text-align: left; }
+    .mic-btn { width: 100%; min-height: 42px; margin-top: 10px; border-color: rgba(159,52,39,.45); border-radius: 4px; color: var(--white); background: var(--cinnabar-dark); font-family: "STKaiti", "KaiTi", serif; font-size: 15px; letter-spacing: .08em; }
+    .mic-btn:hover { color: var(--white); background: var(--cinnabar); }
+    .mic-btn.listening { box-shadow: 0 0 0 5px rgba(184,70,53,.13); animation: listenPulse 1.1s ease-in-out infinite alternate; }
     .facts { margin: 25px 0 0; padding: 0; list-style: none; }
     .facts li { padding: 13px 0; display: grid; grid-template-columns: 72px 1fr; gap: 13px; border-top: 1px solid var(--line); font-size: 14px; }
     .facts span { color: var(--ink-soft); }
     .facts strong { font-weight: 700; }
 
-    .sequence { margin-top: 26px; }
+    .sequence { margin-top: 20px; padding: 17px 18px 7px; }
     .sequence-head { display: flex; justify-content: space-between; color: var(--ink-soft); font-size: 12px; }
     .steps { margin: 12px 0 0; padding: 0; list-style: none; }
     .steps li { position: relative; min-height: 42px; padding-left: 30px; color: var(--ink-soft); font-size: 13px; }
@@ -309,11 +328,11 @@
     .safety strong { display: block; margin-bottom: 4px; color: var(--white); font-size: 13px; }
 
     .concepts { padding: 76px 0 90px; }
-    .concept-head { max-width: 720px; margin-bottom: 28px; }
+    .concept-head { max-width: 760px; margin-bottom: 28px; padding: 22px 25px; }
     .concept-head h2 { margin: 8px 0 8px; font-family: "STKaiti", "KaiTi", serif; font-size: clamp(32px, 4vw, 52px); }
     .concept-head p { color: var(--ink-soft); }
     .concept-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
-    .concept-card { position: relative; overflow: hidden; min-height: 210px; padding: 24px; border: 1px solid rgba(121,87,30,.24); border-radius: 22px; background: rgba(255,253,248,.74); box-shadow: 0 14px 35px rgba(64,48,22,.07); backdrop-filter: blur(12px); }
+    .concept-card { position: relative; overflow: hidden; min-height: 210px; padding: 24px; border: 2px solid rgba(159,52,39,.38); border-radius: 3px; background: rgba(255,253,248,.76); box-shadow: inset 0 0 0 5px rgba(255,253,248,.65), inset 0 0 0 6px rgba(159,52,39,.14), 0 14px 35px rgba(64,48,22,.07); backdrop-filter: blur(12px); }
     .concept-card::after { content: attr(data-mark); position: absolute; right: -2px; bottom: -24px; color: rgba(184,70,53,.06); font: 700 94px/1 "STKaiti", "KaiTi", serif; }
     .concept-card b { display: grid; place-items: center; width: 43px; height: 43px; border-radius: 13px; color: var(--white); background: var(--ink); font-size: 22px; }
     .concept-card h3 { margin: 22px 0 6px; font-size: 20px; }
@@ -322,7 +341,7 @@
     .boundary strong { font-size: 18px; }
     .boundary span { color: rgba(255,255,255,.76); font-size: 13px; }
 
-    .sources { margin: 28px 0 45px; padding: 18px 22px; border-top: 1px solid rgba(121,87,30,.23); color: var(--ink-soft); font-size: 13px; }
+    .sources { margin: 28px 0 45px; padding: 20px 22px; color: var(--ink-soft); font-size: 13px; }
     .sources strong { color: var(--ink); font-family: "STKaiti", "KaiTi", serif; font-size: 17px; }
     .sources a { color: var(--cinnabar-dark); text-underline-offset: 3px; }
 
@@ -331,6 +350,7 @@
     @keyframes silkLight { 0%, 34% { transform: translateX(-12%); } 66%, 100% { transform: translateX(12%); } }
     @keyframes cloudDrift { from { transform: translate3d(-9%, 0, 0) scale(.92); } to { transform: translate3d(26%, -10%, 0) scale(1.08); } }
     @keyframes soundWave { from { height: 5px; } to { height: 16px; } }
+    @keyframes listenPulse { from { transform: translateY(0); } to { transform: translateY(-1px); } }
 
     @media (max-width: 1120px) {
       .workspace { grid-template-columns: 1fr 1.55fr; }
@@ -383,12 +403,12 @@
           <span class="eyebrow">经络寻踪 · 穴名有源</span>
           <h1>一穴一典，<span>一图一解。</span></h1>
         </div>
-        <p class="lead">从穴名、位置与古代取象说起，让初识经络的人也能循图而学、听解而知。</p>
+        <p class="lead book-leaf">从穴名、位置与古代取象说起，让初识经络的人也能循图而学、听解而知。</p>
         <figure class="meridian-reference">
           <img src="assets/meridian-reference.jpg" alt="古代人体正面与背面针灸经络图" width="1984" height="2976">
           <figcaption>真人经络古图参照 · Wellcome Collection，CC BY 4.0</figcaption>
         </figure>
-        <div class="mode-copy">
+        <div class="mode-copy book-leaf">
           <span class="index" id="modeIndex">卷一 · 识穴</span>
           <h2 id="modeTitle">从十个代表性穴位开始</h2>
           <p id="modeDescription">对照真人经络古图与交互模型，点击穴位即可了解名称、位置与文化渊源。</p>
@@ -441,30 +461,38 @@
         <div>
           <div class="status-row"><span class="eyebrow">此刻所览</span><span class="status-pill" id="statusPill">穴位导览</span></div>
           <section class="voice-agent" id="voiceAgent" aria-label="岐黄语音讲解官">
-            <div class="agent-head">
-              <span class="agent-seal">岐</span>
-              <div><strong>岐黄讲解官</strong><small id="voiceState">已就绪 · 可朗读当前穴位</small></div>
-              <button class="speak-btn" id="voiceButton" type="button" aria-label="朗读当前穴位"><span class="sound-bars" aria-hidden="true"><i></i><i></i><i></i></span></button>
+            <div class="voice-intro">
+              <div class="agent-head">
+                <span class="agent-seal">岐</span>
+                <div><strong>语音介绍</strong><small id="voiceState">已就绪 · 点击右侧聆听当前穴位</small></div>
+                <button class="speak-btn" id="voiceButton" type="button" aria-label="聆听当前穴位介绍"><span class="sound-bars" aria-hidden="true"><i></i><i></i><i></i></span></button>
+              </div>
+              <p class="agent-answer" id="agentAnswer">选中一个穴位，我会从名字、位置与传统文化三个角度为你讲解。</p>
             </div>
-            <p class="agent-answer" id="agentAnswer">选中一个穴位，我会从名字、位置与传统文化三个角度为你讲解。</p>
-            <div class="agent-asks">
-              <button class="ask-chip" data-ask="meaning" type="button">名字缘何如此？</button>
-              <button class="ask-chip" data-ask="tradition" type="button">传统理论怎么看？</button>
-              <button class="ask-chip" data-ask="location" type="button">如何找到它？</button>
-              <button class="mic-btn" id="micButton" type="button">语音提问</button>
+            <div class="question-desk">
+              <div class="question-title"><strong>语音问询</strong><span>每次聆听约 12 秒，可提前结束</span></div>
+              <p class="question-tip">不知道怎样问？可以先试试这些问题：</p>
+              <div class="question-examples">
+                <button class="ask-chip" data-ask="meaning" type="button">“大椎为什么叫大椎？”</button>
+                <button class="ask-chip" data-ask="tradition" type="button">“传统上怎样认识这个穴位？”</button>
+                <button class="ask-chip" data-ask="location" type="button">“这个穴位在身体哪里？”</button>
+              </div>
+              <button class="mic-btn" id="micButton" type="button">开始语音提问 · 12 秒</button>
             </div>
           </section>
-          <h2 id="targetName">大椎</h2>
-          <span class="code" id="targetCode">GV14 · 督脉</span>
-          <p class="detail-copy" id="targetDescription">位于颈背交界的后正中线区域，是背面导览的起始教学点。</p>
-          <ul class="facts">
-            <li><span>穴名释义</span><strong id="targetMeaning">因位于颈背突出的椎骨下方而得名</strong></li>
-            <li><span>传统认识</span><strong id="targetTradition">用于理解督脉与诸阳经交会的概念</strong></li>
-            <li><span>对应方式</span><strong id="targetAction">软头指示笔悬停指引</strong></li>
-            <li><span>定位依据</span><strong id="targetSource">背部标记坐标系</strong></li>
-          </ul>
+          <div class="target-leaf book-leaf">
+            <h2 id="targetName">大椎</h2>
+            <span class="code" id="targetCode">GV14 · 督脉</span>
+            <p class="detail-copy" id="targetDescription">位于颈背交界的后正中线区域，是背面导览的起始教学点。</p>
+            <ul class="facts">
+              <li><span>穴名释义</span><strong id="targetMeaning">因位于颈背突出的椎骨下方而得名</strong></li>
+              <li><span>传统认识</span><strong id="targetTradition">用于理解督脉与诸阳经交会的概念</strong></li>
+              <li><span>对应方式</span><strong id="targetAction">软头指示笔悬停指引</strong></li>
+              <li><span>定位依据</span><strong id="targetSource">背部标记坐标系</strong></li>
+            </ul>
+          </div>
         </div>
-        <div class="sequence">
+        <div class="sequence book-leaf">
           <div class="sequence-head"><span>寻访次序</span><span id="sequenceCount">1 / 5</span></div>
           <ol class="steps" id="sequenceSteps"></ol>
         </div>
@@ -473,7 +501,7 @@
     </section>
 
     <section class="concepts">
-      <div class="concept-head"><span class="eyebrow">古图 · 映射 · 讲解 · 体验</span><h2>从一张经络图，走进一套可感知的文化体验</h2><p>每个穴位都与真人经络古图、交互模型和语音讲解相互对应，让位置不再抽象，让名称背后的文化不再晦涩。</p></div>
+      <div class="concept-head book-leaf"><span class="eyebrow">古图 · 映射 · 讲解 · 体验</span><h2>从一张经络图，走进一套可感知的文化体验</h2><p>每个穴位都与真人经络古图、交互模型和语音讲解相互对应，让位置不再抽象，让名称背后的文化不再晦涩。</p></div>
       <div class="concept-grid">
         <article class="concept-card" data-mark="图"><b>卷</b><h3>古图参照</h3><p>以开放授权的真人正背面经络古图为文化底本，理解古人如何观察与标记身体。</p></article>
         <article class="concept-card" data-mark="映"><b>•</b><h3>假人映射</h3><p>将古图上的抽象点位对应到交互假人，镜头中的标记帮助系统稳定识别朝向与位置。</p></article>
@@ -482,7 +510,7 @@
       </div>
       <div class="boundary"><strong>以文化理解身体，以科技守住边界</strong><span>无针刺 · 无明火 · 不做诊断 · 不替代医疗建议 · 真人体验需现场指导</span></div>
     </section>
-    <footer class="sources"><strong>资料依据</strong>　穴位名称与定位参照 <a href="https://www.who.int/publications/i/item/9290611057" target="_blank" rel="noreferrer">WHO 标准针灸命名</a>及标准定位资料；经络古图来自 <a href="https://commons.wikimedia.org/wiki/File:Anterior_and_posterior_whole-body_acu-moxa_charts,_Chinese_Wellcome_L0037879.jpg" target="_blank" rel="noreferrer">Wellcome Collection / Wikimedia Commons</a>，CC BY 4.0。穴名释义采用面向公众的文化性解释，不作为诊断或治疗依据。</footer>
+    <footer class="sources book-leaf"><strong>资料依据</strong>　穴位名称与定位参照 <a href="https://www.who.int/publications/i/item/9290611057" target="_blank" rel="noreferrer">WHO 标准针灸命名</a>及标准定位资料；经络古图来自 <a href="https://commons.wikimedia.org/wiki/File:Anterior_and_posterior_whole-body_acu-moxa_charts,_Chinese_Wellcome_L0037879.jpg" target="_blank" rel="noreferrer">Wellcome Collection / Wikimedia Commons</a>，CC BY 4.0。穴名释义采用面向公众的文化性解释，不作为诊断或治疗依据。</footer>
   </main>
 
   <script>
@@ -529,6 +557,7 @@
     let timer = null;
     let currentExperience = 'mannequin';
     let currentPoint = pointSets.back[0];
+    let voiceQuestionSession = null;
 
     const $ = (id) => document.getElementById(id);
 
@@ -655,27 +684,105 @@
       window.speechSynthesis.speak(utterance);
     }
 
+    function answerVoiceQuestion(words) {
+      if (/名字|为什么|叫/.test(words)) speak('meaning');
+      else if (/传统|作用|经络|古籍|历史|渊源/.test(words)) speak('tradition');
+      else if (/哪里|位置|怎么找|在哪/.test(words)) speak('location');
+      else speak('overview');
+    }
+
+    function finishVoiceQuestion(shouldAnswer = true, message = '') {
+      const session = voiceQuestionSession;
+      if (!session) return;
+      session.active = false;
+      voiceQuestionSession = null;
+      clearInterval(session.countdown);
+      $('micButton').classList.remove('listening');
+      $('micButton').textContent = '开始语音提问 · 12 秒';
+      try { session.recognition?.stop(); } catch (_) {}
+      const words = session.transcript.trim();
+      if (message) $('voiceState').textContent = message;
+      if (shouldAnswer && words) {
+        $('voiceState').textContent = `已听到：${words}`;
+        window.setTimeout(() => answerVoiceQuestion(words), 280);
+      } else if (shouldAnswer && !message) {
+        $('voiceState').textContent = '没有听清，请靠近麦克风再试一次';
+      }
+    }
+
+    function launchVoiceRecognition(session) {
+      if (!session.active || Date.now() >= session.endAt) return finishVoiceQuestion();
+      const recognition = new session.Recognition();
+      session.recognition = recognition;
+      recognition.lang = 'zh-CN';
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.onstart = () => {
+        if (voiceQuestionSession === session) $('voiceState').textContent = '正在聆听，请自然说出完整问题…';
+      };
+      recognition.onresult = event => {
+        let finalWords = '';
+        let interimWords = '';
+        for (let i = event.resultIndex; i < event.results.length; i += 1) {
+          const text = event.results[i][0].transcript;
+          if (event.results[i].isFinal) finalWords += text;
+          else interimWords += text;
+        }
+        if (finalWords) session.transcript = `${session.transcript} ${finalWords}`.trim();
+        const heard = `${session.transcript} ${interimWords}`.trim();
+        if (heard) $('voiceState').textContent = `正在聆听：${heard}`;
+      };
+      recognition.onerror = event => {
+        const fatal = ['not-allowed', 'service-not-allowed', 'audio-capture'].includes(event.error);
+        if (fatal) {
+          const message = event.error === 'audio-capture' ? '没有检测到麦克风，请检查设备' : '请允许浏览器使用麦克风后再试';
+          finishVoiceQuestion(false, message);
+        }
+      };
+      recognition.onend = () => {
+        if (voiceQuestionSession !== session || !session.active) return;
+        if (Date.now() < session.endAt && session.restarts < 6) {
+          session.restarts += 1;
+          window.setTimeout(() => launchVoiceRecognition(session), 120);
+        } else {
+          finishVoiceQuestion();
+        }
+      };
+      try { recognition.start(); }
+      catch (_) {
+        if (Date.now() < session.endAt) window.setTimeout(() => launchVoiceRecognition(session), 180);
+        else finishVoiceQuestion();
+      }
+    }
+
     function beginVoiceQuestion() {
-      const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!Recognition) {
-        $('voiceState').textContent = '当前浏览器不支持语音提问，可点击问题签';
+      if (voiceQuestionSession) {
+        finishVoiceQuestion();
         return;
       }
-      const recognition = new Recognition();
-      recognition.lang = 'zh-CN';
-      recognition.interimResults = false;
-      recognition.onstart = () => { $('voiceState').textContent = '请说出你的问题…'; $('micButton').textContent = '正在聆听'; };
-      recognition.onresult = event => {
-        const words = event.results[0][0].transcript;
-        $('voiceState').textContent = `听到：${words}`;
-        if (/名字|为什么|叫/.test(words)) speak('meaning');
-        else if (/传统|作用|经络|古籍|历史|渊源/.test(words)) speak('tradition');
-        else if (/哪里|位置|怎么找|在哪/.test(words)) speak('location');
-        else speak('overview');
+      const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!Recognition) {
+        $('voiceState').textContent = '当前浏览器不支持语音提问，可点击下方示例问题';
+        return;
+      }
+      window.speechSynthesis?.cancel();
+      const session = {
+        Recognition,
+        active: true,
+        endAt: Date.now() + 12000,
+        transcript: '',
+        recognition: null,
+        countdown: null,
+        restarts: 0
       };
-      recognition.onerror = () => { $('voiceState').textContent = '没有听清，可点击问题签继续'; };
-      recognition.onend = () => { $('micButton').textContent = '语音提问'; };
-      recognition.start();
+      voiceQuestionSession = session;
+      $('micButton').classList.add('listening');
+      session.countdown = window.setInterval(() => {
+        const seconds = Math.max(0, Math.ceil((session.endAt - Date.now()) / 1000));
+        $('micButton').textContent = `结束提问 · 还剩 ${seconds} 秒`;
+        if (seconds <= 0) finishVoiceQuestion();
+      }, 200);
+      launchVoiceRecognition(session);
     }
 
     function stopPlayback() {
