@@ -641,7 +641,7 @@
     <section class="robot-console book-leaf" id="robotConsole">
       <div class="robot-console-head">
         <div><span class="eyebrow">假人寻穴 · 真机演示</span><h2>五个穴位，各自记录三个姿态</h2></div>
-          <p>五枚 AprilTag 建立假人背部坐标系。点击已完成记录的穴位，对应手臂会正向播放三帧，停留 5 秒，再倒序播放三帧、沿上场路径退回、关节归零，最后才松手。</p>
+          <p>五枚 AprilTag 建立假人背部坐标系。点击已完成记录的穴位，对应手臂会正向播放三帧，停留 5 秒，再倒序播放三帧，然后用一次 MoveJ 让七个关节同步归零，最后才松手。</p>
       </div>
       <div class="robot-console-grid">
         <div class="robot-control">

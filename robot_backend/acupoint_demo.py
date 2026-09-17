@@ -618,7 +618,7 @@ class ActionController:
             phase = "returning" if reverse else "cycling" if round_trip else "running"
             message = (
                 f"正在倒序返回：{name}" if reverse
-                else f"正在演示 {name}：正向三帧 → 等待 5 秒 → 倒序三帧 → 上场反序 → 归零 → 放手" if round_trip
+                else f"正在演示 {name}：正向三帧 → 等待 5 秒 → 倒序三帧 → 七轴同步归零 → 放手" if round_trip
                 else f"正在执行三帧：{name}"
             )
             self.state.update({

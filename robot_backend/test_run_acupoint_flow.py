@@ -93,7 +93,7 @@ class ExecuteOrderTests(unittest.TestCase):
                 return {"ok": True}
             commanded_arms.append(body["arm"])
             moved.append(body["joints"][0])
-            events.append(("move", body["joints"][0]))
+            events.append(("move", list(body["joints"])))
             return {"ok": True}
 
         with patch.object(flow_runner, "bridge_request", side_effect=fake_bridge_request), \
@@ -114,18 +114,18 @@ class ExecuteOrderTests(unittest.TestCase):
 
     def test_return_plays_three_taught_frames_in_reverse(self):
         moved, _, _, hand_commands, _ = self.run_flow(reverse=True)
-        self.assertEqual([3.0, 2.0, 1.0, 8.0, 9.0, 0.0], moved)
+        self.assertEqual([3.0, 2.0, 1.0, 0.0], moved)
         self.assertEqual([], hand_commands)
 
     def test_round_trip_plays_forward_waits_five_seconds_then_reverses(self):
         moved, sleeps, _, hand_commands, events = self.run_flow(round_trip=True)
-        self.assertEqual([1.0, 2.0, 3.0, 3.0, 2.0, 1.0, 8.0, 9.0, 0.0], moved)
+        self.assertEqual([1.0, 2.0, 3.0, 3.0, 2.0, 1.0, 0.0], moved)
         self.assertEqual(5.0, sleeps[3])
         self.assertEqual([
             ("left", flow_runner.POINT_GESTURE),
             ("left", flow_runner.REST_GESTURE),
         ], hand_commands)
-        self.assertEqual(("move", 0.0), events[-2])
+        self.assertEqual(("move", [0.0] * 7), events[-2])
         self.assertEqual(("hand", flow_runner.REST_GESTURE), events[-1])
 
     def test_execute_uses_configured_right_arm(self):

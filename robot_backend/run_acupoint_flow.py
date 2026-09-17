@@ -160,17 +160,11 @@ def execute(flow: dict, bridge_url: str, speed_scale: float, timeout: float,
     if round_trip:
         sequences.append(list(reversed(forward_names)))
 
-    # A complete return follows the taught frames back through the two fixed
-    # staging poses and finally commands the seven arm joints to their origin.
-    # The one-finger gesture is deliberately held until every return move has
-    # completed; releasing it earlier made the hand open while the arm was
-    # still moving away from the acupoint.
-    return_names = ["stage_2_return", "stage_1_return"] if reverse or round_trip else []
-    for frame_name in return_names:
-        if frame_name not in by_name:
-            raise RuntimeError(f"流程缺少返程关键帧：{frame_name}")
-
-    total = sum(len(sequence) for sequence in sequences) + len(return_names) + (1 if return_names else 0)
+    # A complete return sends one seven-axis MoveJ target.  Do not replay the
+    # staging poses here: that would create several visibly separate moves even
+    # though each individual service request already contains all seven joints.
+    should_zero = reverse or round_trip
+    total = sum(len(sequence) for sequence in sequences) + (1 if should_zero else 0)
     step = 0
     gesture_active = False
     try:
@@ -198,21 +192,9 @@ def execute(flow: dict, bridge_url: str, speed_scale: float, timeout: float,
                     "acceleration": float(flow.get("acceleration", 0.8)) * speed_scale,
                 })
                 time.sleep(max(0.0, float(frame.get("hold", 0.0))))
-        for frame_name in return_names:
-            frame = by_name[frame_name]
-            joints = validate_joints(frame.get("joints"), frame.get("label", frame_name))
+        if should_zero:
             step += 1
-            print(f"[{step}/{total}] {frame['label']}", flush=True)
-            bridge_request(bridge_url, "/move_joint", {
-                "arm": arm,
-                "joints": joints,
-                "speed": float(flow.get("speed", 0.8)) * speed_scale,
-                "acceleration": float(flow.get("acceleration", 0.8)) * speed_scale,
-            })
-            time.sleep(max(0.0, float(frame.get("hold", 0.0))))
-        if return_names:
-            step += 1
-            print(f"[{step}/{total}] {arm} 臂关节归零", flush=True)
+            print(f"[{step}/{total}] {arm} 臂七轴同步归零（单次 MoveJ）", flush=True)
             bridge_request(bridge_url, "/move_joint", {
                 "arm": arm,
                 "joints": ZERO_JOINTS,
@@ -220,7 +202,7 @@ def execute(flow: dict, bridge_url: str, speed_scale: float, timeout: float,
                 "acceleration": float(flow.get("acceleration", 0.8)) * speed_scale,
             })
         if gesture_active:
-            if return_names:
+            if should_zero:
                 print(f"[手势] {arm} 臂返程与关节归零完成，手势恢复", flush=True)
             else:
                 print(f"[手势] {arm} 臂三帧完成，手势恢复", flush=True)
