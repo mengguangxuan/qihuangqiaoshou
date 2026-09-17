@@ -642,28 +642,28 @@
     <section class="robot-console book-leaf" id="robotConsole">
       <div class="robot-console-head">
         <div><span class="eyebrow">假人寻穴 · 真机演示</span><h2>五个穴位，各自记录三个姿态</h2></div>
-        <p>五枚 AprilTag 建立假人背部坐标系。点击已完成记录的穴位，左臂会正向播放三帧，停留 5 秒，再倒序播放三帧。</p>
+        <p>五枚 AprilTag 建立假人背部坐标系。点击已完成记录的穴位，对应手臂会正向播放三帧，停留 5 秒，再倒序播放三帧。</p>
       </div>
       <div class="robot-console-grid">
         <div class="robot-control">
           <label>五个穴位的独立关键帧</label>
           <div class="robot-point-grid" role="tablist" aria-label="选择穴位；已完成三帧的穴位点击后直接演示">
-            <button class="robot-point-button active" data-robot-point="GV14" type="button" role="tab" aria-selected="true">大椎<small>GV14</small></button>
-            <button class="robot-point-button" data-robot-point="SI11-L" type="button" role="tab" aria-selected="false">左天宗<small>SI11-L</small></button>
-            <button class="robot-point-button" data-robot-point="SI11-R" type="button" role="tab" aria-selected="false">右天宗<small>SI11-R</small></button>
-            <button class="robot-point-button" data-robot-point="BL23-L" type="button" role="tab" aria-selected="false">左肾伞<small>BL23-L</small></button>
-            <button class="robot-point-button" data-robot-point="BL23-R" type="button" role="tab" aria-selected="false">右肾伞<small>BL23-R</small></button>
+            <button class="robot-point-button active" data-robot-point="GV14" type="button" role="tab" aria-selected="true">大椎<small>GV14 · 左臂</small></button>
+            <button class="robot-point-button" data-robot-point="SI11-L" type="button" role="tab" aria-selected="false">左天宗<small>SI11-L · 左臂</small></button>
+            <button class="robot-point-button" data-robot-point="SI11-R" type="button" role="tab" aria-selected="false">右天宗<small>SI11-R · 右臂</small></button>
+            <button class="robot-point-button" data-robot-point="BL23-L" type="button" role="tab" aria-selected="false">左肾俞<small>BL23-L · 左臂</small></button>
+            <button class="robot-point-button" data-robot-point="BL23-R" type="button" role="tab" aria-selected="false">右肾俞<small>BL23-R · 右臂</small></button>
           </div>
           <div class="robot-form"><select id="robotPointSelect"><option value="GV14">大椎 · GV14</option><option value="SI11-L">左天宗 · SI11-L</option><option value="SI11-R">右天宗 · SI11-R</option><option value="BL23-L">左肾俞 · BL23-L</option><option value="BL23-R">右肾俞 · BL23-R</option></select></div>
           <div class="robot-status" id="robotStatus">正在寻找本机视觉与机械臂服务……</div>
           <section class="connection-panel" aria-labelledby="connectionTitle">
             <div class="connection-head"><strong id="connectionTitle">真机连接检查</strong><span>只读检查，不发送运动</span></div>
-            <div class="connection-grid"><div class="connection-item" id="checkLocal">本机穴位服务</div><div class="connection-item" id="checkVision">AprilTag 定位</div><div class="connection-item" id="checkBridge">8766 动作桥</div><div class="connection-item" id="checkArm">左臂关节与 Arm_Tip</div></div>
+            <div class="connection-grid"><div class="connection-item" id="checkLocal">本机穴位服务</div><div class="connection-item" id="checkVision">AprilTag 定位</div><div class="connection-item" id="checkBridge">8766 动作桥</div><div class="connection-item" id="checkArm">对应手臂关节与 Arm_Tip</div></div>
             <div class="robot-safety-actions"><button id="robotPreflight" type="button">检查机器人连接</button><button class="emergency" id="robotEmergency" type="button" disabled>紧急停止</button></div>
           </section>
           <section class="teach-panel" aria-labelledby="teachTitle">
-            <div class="teach-head"><strong id="teachTitle">关键帧示教</strong><span>当前所选穴位</span></div>
-            <p>每个穴位各自保存 3 个姿态。点击“记录姿态”就直接写入当前左臂关节数据，姿态相同也不阻止保存。</p>
+            <div class="teach-head"><strong id="teachTitle">关键帧示教</strong><span id="teachArmLabel">当前所选穴位</span></div>
+            <p>每个穴位各自保存 3 个姿态。点击“记录姿态”就直接写入该穴位所用手臂的当前关节数据，姿态相同也不阻止保存。</p>
             <div class="teach-grid">
               <div class="teach-slot"><button class="teach-button" data-keyframe="approach" type="button">记录姿态 1</button><button class="teach-delete" data-delete-keyframe="approach" type="button" disabled aria-label="删除关键帧 1">删除</button></div>
               <div class="teach-slot"><button class="teach-button" data-keyframe="target" type="button">记录姿态 2</button><button class="teach-delete" data-delete-keyframe="target" type="button" disabled aria-label="删除关键帧 2">删除</button></div>
@@ -1132,8 +1132,10 @@
       const action = status.action || {};
       const bridge = action.bridge || {};
       const health = bridge.health || {};
-      const leftAge = health.joint_state_age_s?.left;
-      const armReady = bridge.ok && Number.isFinite(leftAge) && leftAge <= 1 && health.tool_frames?.left === 'Arm_Tip';
+      const selectedArm = selected?.arm || 'left';
+      const selectedArmLabel = selected?.arm_label || (selectedArm === 'right' ? '右臂' : '左臂');
+      const selectedArmAge = health.joint_state_age_s?.[selectedArm];
+      const armReady = bridge.ok && Number.isFinite(selectedArmAge) && selectedArmAge <= 1 && health.tool_frames?.[selectedArm] === 'Arm_Tip';
       const ready = Boolean(status.tracking && selected?.ready && action.enabled && !action.running && bridge.ok);
       $('robotExecute').disabled = !ready;
       const gateText =
@@ -1155,7 +1157,8 @@
       setCheck('checkLocal', '本机穴位服务已连接', true);
       setCheck('checkVision', status.tracking ? 'AprilTag 定位稳定' : 'AprilTag 定位未稳定', Boolean(status.tracking));
       setCheck('checkBridge', bridge.checked ? (bridge.ok ? '8766 动作桥已就绪' : '8766 动作桥未就绪') : '8766 动作桥待检查', bridge.checked ? Boolean(bridge.ok) : null);
-      setCheck('checkArm', bridge.checked ? (armReady ? '左臂状态与 Arm_Tip 正常' : '左臂状态或工具坐标异常') : '左臂状态待检查', bridge.checked ? Boolean(armReady) : null);
+      setCheck('checkArm', bridge.checked ? (armReady ? `${selectedArmLabel}状态与 Arm_Tip 正常` : `${selectedArmLabel}状态或工具坐标异常`) : `${selectedArmLabel}状态待检查`, bridge.checked ? Boolean(armReady) : null);
+      $('teachArmLabel').textContent = selected ? `${selected.name} · ${selectedArmLabel}` : '当前所选穴位';
       $('robotEmergency').disabled = !bridge.checked;
       document.querySelectorAll('.robot-point-button').forEach(button => {
         const flow = status.flows?.find(item => item.code === button.dataset.robotPoint);
@@ -1172,7 +1175,7 @@
         button.disabled = Boolean(action.running);
         button.textContent = `${done ? '覆盖' : '记录'}${labels[button.dataset.keyframe]}`;
         const frame = selected?.keyframes?.find(item => item.name === button.dataset.keyframe);
-        button.title = frame?.recorded ? `已保存关节角：${formatJoints(frame.joints)}` : '尚未记录';
+        button.title = frame?.recorded ? `${selectedArmLabel}已保存关节角：${formatJoints(frame.joints)}` : `尚未记录${selectedArmLabel}姿态`;
       });
       document.querySelectorAll('.teach-delete').forEach(button => {
         const frame = selected?.keyframes?.find(item => item.name === button.dataset.deleteKeyframe);
@@ -1204,7 +1207,8 @@
         $('checkLocal').textContent = '本机穴位服务未连接';
         $('checkVision').textContent = 'AprilTag 状态未知';
         $('checkBridge').textContent = '8766 动作桥状态未知';
-        $('checkArm').textContent = '左臂状态未知';
+        $('checkArm').textContent = '对应手臂状态未知';
+        $('teachArmLabel').textContent = '当前所选穴位';
         document.querySelectorAll('.teach-button').forEach(button => {
           button.disabled = false;
           button.classList.remove('done');
@@ -1376,7 +1380,9 @@
         return;
       }
       document.querySelectorAll('.teach-button').forEach(item => { item.disabled = true; });
-      $('robotStatus').textContent = '正在读取左臂当前关节位置，请保持姿态不动……';
+      const selected = localRobotStatus?.flows?.find(item => item.code === $('robotPointSelect').value);
+      const armLabel = selected?.arm_label || (selected?.arm === 'right' ? '右臂' : '左臂');
+      $('robotStatus').textContent = `正在读取${armLabel}当前关节位置，请保持姿态不动……`;
       try {
         const response = await fetch(`${localRobotBase}/api/teach`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ point:$('robotPointSelect').value, keyframe:button.dataset.keyframe }) });
         const result = await response.json();
