@@ -388,7 +388,7 @@
     .robot-console-grid { display:grid; grid-template-columns:minmax(320px,.72fr) minmax(480px,1.28fr); gap:18px; }
     .robot-control, .robot-vision { padding:22px; border:2px solid rgba(159,52,39,.38); background:rgba(255,252,242,.68); box-shadow:inset 0 0 0 5px rgba(255,253,248,.7),inset 0 0 0 6px rgba(159,52,39,.13); }
     .robot-control label { display:block; color:var(--ink-soft); font-size:13px; }
-    .robot-form { margin-top:9px; display:grid; grid-template-columns:1fr auto; gap:9px; }
+    .robot-form { display:none; }
     .robot-form select, .robot-form button { min-height:50px; border:1px solid rgba(23,51,47,.2); font:700 15px/1 "STKaiti","KaiTi",serif; }
     .robot-form select { padding:0 13px; color:var(--ink); background:#fffdf6; }
     .robot-form button { padding:0 20px; color:#fff; background:var(--cinnabar); cursor:pointer; }
@@ -413,15 +413,21 @@
     .teach-head span { color:var(--ink-soft); font-size:12px; }
     .teach-panel p { margin:7px 0 12px; color:var(--ink-soft); font-size:13px; line-height:1.65; }
     .teach-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; }
+    .teach-slot { min-width:0; display:grid; grid-template-columns:minmax(0,1fr) auto; }
     .teach-button { min-height:45px; padding:7px; border:1px solid rgba(159,52,39,.3); color:var(--cinnabar-dark); background:#fffaf0; cursor:pointer; font:700 14px/1.25 "STKaiti","KaiTi",serif; }
     .teach-button.done { color:#fff; border-color:#315d4e; background:#315d4e; }
     .teach-button:disabled { opacity:.48; cursor:not-allowed; }
-    .teach-views { margin-top:11px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
-    .teach-view-button { min-height:38px; padding:6px 8px; border:1px solid rgba(23,51,47,.15); color:var(--ink-soft); background:rgba(255,253,248,.72); cursor:pointer; font-weight:800; }
-    .teach-view-button b { margin-left:5px; color:inherit; }
-    .teach-view-button[data-teach-view="success"].active { color:#fff; border-color:#315d4e; background:#315d4e; }
-    .teach-view-button[data-teach-view="failure"].active { color:#fff; border-color:#8d3428; background:#8d3428; }
-    .teach-execute { width:100%; min-height:48px; margin-top:11px; border:1px solid #315d4e; color:#fff; background:#315d4e; cursor:pointer; font:700 17px/1.2 "STKaiti","KaiTi",serif; box-shadow:0 8px 18px rgba(23,51,47,.12); }
+    .teach-delete { min-width:42px; padding:0 8px; border:1px solid rgba(141,52,40,.3); border-left:0; color:#8d3428; background:#fff4ea; cursor:pointer; font:700 13px/1.2 "STKaiti","KaiTi",serif; }
+    .teach-delete:hover:not(:disabled) { color:#fff; background:#8d3428; }
+    .teach-delete:disabled { opacity:.4; cursor:not-allowed; }
+    .robot-point-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:7px; }
+    .robot-point-button { min-height:54px; padding:7px 5px; border:1px solid rgba(23,51,47,.2); color:var(--ink-soft); background:rgba(255,253,248,.84); cursor:pointer; font:800 14px/1.2 "STKaiti","KaiTi",serif; }
+    .robot-point-button small { display:block; margin-top:4px; color:inherit; font:700 11px/1 system-ui,sans-serif; opacity:.76; }
+    .robot-point-button.active { color:#fff; border-color:var(--cinnabar-dark); background:var(--cinnabar-dark); box-shadow:0 7px 16px rgba(141,52,40,.16); }
+    .robot-point-button.ready:not(.active)::after { content:' · 已录 3/3'; color:#315d4e; font:700 10px/1 system-ui,sans-serif; }
+    .robot-point-button:disabled { opacity:.5; cursor:not-allowed; }
+    .teach-action-row { margin-top:11px; }
+    .teach-execute { width:100%; min-height:48px; border:1px solid #315d4e; color:#fff; background:#315d4e; cursor:pointer; font:700 17px/1.2 "STKaiti","KaiTi",serif; box-shadow:0 8px 18px rgba(23,51,47,.12); }
     .teach-execute:disabled { color:#7c6d5c; border-color:rgba(23,51,47,.18); background:#e7deca; cursor:not-allowed; box-shadow:none; }
     .teach-detail { min-height:88px; margin-top:8px; padding:10px; border:1px solid rgba(23,51,47,.11); background:rgba(255,253,248,.76); color:var(--ink-soft); font-size:12px; line-height:1.6; }
     .teach-log { margin:0; padding:0; list-style:none; }
@@ -493,6 +499,7 @@
       .boundary { align-items: flex-start; flex-direction: column; }
       .robot-console-head { align-items:flex-start; flex-direction:column; }
       .robot-console-grid { grid-template-columns:1fr; }
+      .robot-point-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
       .coordinate-list { grid-template-columns:repeat(2,minmax(0,1fr)); }
       .teach-grid { grid-template-columns:1fr; }
       .hotspot::after { display: none; }
@@ -634,12 +641,19 @@
     </section>
     <section class="robot-console book-leaf" id="robotConsole">
       <div class="robot-console-head">
-        <div><span class="eyebrow">假人寻穴 · 真机演示</span><h2>选一处穴位，让左臂循序指向</h2></div>
-        <p>五枚 AprilTag 建立假人背部坐标系，相机画面实时推算五处穴位。每个穴位都有独立的“上场—接近—指向—撤离”关键帧流程。</p>
+        <div><span class="eyebrow">假人寻穴 · 真机演示</span><h2>五个穴位，各自记录三个姿态</h2></div>
+        <p>五枚 AprilTag 建立假人背部坐标系。点击已完成记录的穴位，左臂会正向播放三帧，停留 5 秒，再倒序播放三帧。</p>
       </div>
       <div class="robot-console-grid">
         <div class="robot-control">
-          <label for="robotPointSelect">选择演示穴位</label>
+          <label>五个穴位的独立关键帧</label>
+          <div class="robot-point-grid" role="tablist" aria-label="选择穴位；已完成三帧的穴位点击后直接演示">
+            <button class="robot-point-button active" data-robot-point="GV14" type="button" role="tab" aria-selected="true">大椎<small>GV14</small></button>
+            <button class="robot-point-button" data-robot-point="SI11-L" type="button" role="tab" aria-selected="false">左天宗<small>SI11-L</small></button>
+            <button class="robot-point-button" data-robot-point="SI11-R" type="button" role="tab" aria-selected="false">右天宗<small>SI11-R</small></button>
+            <button class="robot-point-button" data-robot-point="BL23-L" type="button" role="tab" aria-selected="false">左肾伞<small>BL23-L</small></button>
+            <button class="robot-point-button" data-robot-point="BL23-R" type="button" role="tab" aria-selected="false">右肾伞<small>BL23-R</small></button>
+          </div>
           <div class="robot-form"><select id="robotPointSelect"><option value="GV14">大椎 · GV14</option><option value="SI11-L">左天宗 · SI11-L</option><option value="SI11-R">右天宗 · SI11-R</option><option value="BL23-L">左肾俞 · BL23-L</option><option value="BL23-R">右肾俞 · BL23-R</option></select></div>
           <div class="robot-status" id="robotStatus">正在寻找本机视觉与机械臂服务……</div>
           <section class="connection-panel" aria-labelledby="connectionTitle">
@@ -649,17 +663,20 @@
           </section>
           <section class="teach-panel" aria-labelledby="teachTitle">
             <div class="teach-head"><strong id="teachTitle">关键帧示教</strong><span>当前所选穴位</span></div>
-            <p>依次记录接近、指向、撤离三个姿态；绿色表示已经落盘，再次点击可覆盖。上场与退场属于后台安全流程，不需要在这里逐步管理。</p>
-            <div class="teach-grid"><button class="teach-button" data-keyframe="approach" type="button">记录接近位</button><button class="teach-button" data-keyframe="target" type="button">记录指向位</button><button class="teach-button" data-keyframe="retreat" type="button">记录撤离位</button></div>
-            <button class="teach-execute" id="robotExecute" type="button" disabled>记录三帧后执行当前穴位</button>
-            <div class="teach-views" role="tablist" aria-label="示教结果视图"><button class="teach-view-button active" data-teach-view="success" type="button">成功 <b id="teachSuccessCount">0</b></button><button class="teach-view-button" data-teach-view="failure" type="button">失败 <b id="teachFailureCount">0</b></button></div>
+            <p>每个穴位各自保存 3 个姿态。点击“记录姿态”就直接写入当前左臂关节数据，姿态相同也不阻止保存。</p>
+            <div class="teach-grid">
+              <div class="teach-slot"><button class="teach-button" data-keyframe="approach" type="button">记录姿态 1</button><button class="teach-delete" data-delete-keyframe="approach" type="button" disabled aria-label="删除关键帧 1">删除</button></div>
+              <div class="teach-slot"><button class="teach-button" data-keyframe="target" type="button">记录姿态 2</button><button class="teach-delete" data-delete-keyframe="target" type="button" disabled aria-label="删除关键帧 2">删除</button></div>
+              <div class="teach-slot"><button class="teach-button" data-keyframe="retreat" type="button">记录姿态 3</button><button class="teach-delete" data-delete-keyframe="retreat" type="button" disabled aria-label="删除关键帧 3">删除</button></div>
+            </div>
+            <div class="teach-action-row"><button class="teach-execute" id="robotExecute" type="button" disabled>记录三帧后可演示</button></div>
             <div class="teach-detail" id="teachDetail" aria-live="polite">连接本机服务后显示关键帧结果。</div>
           </section>
           <section class="command-panel" aria-labelledby="commandTitle">
             <div class="command-head"><strong id="commandTitle">执行信息与 ROS2 命令</strong><span id="commandState">等待三帧</span></div>
-            <p class="command-note">点击上方“一键执行当前穴位”即可运行完整动作；下方命令用于复制或核对三帧示教数据。</p>
+            <p class="command-note">点击已完成三帧的穴位，会正向播放 3 帧，等待 5 秒，再倒序播放 3 帧。下方命令用于复制或核对数据。</p>
             <pre class="command-code" id="executeCommand">选择并完成一个穴位的三帧示教后生成。</pre>
-            <div class="command-actions"><button id="copyExecuteCommand" type="button" disabled>复制统一执行命令</button></div>
+            <div class="command-actions"><button id="copyExecuteCommand" type="button" disabled>复制往返演示命令</button></div>
             <details class="ros2-details"><summary>查看三帧 ROS2 MoveJ 命令</summary><pre class="command-code" id="ros2Commands">尚未生成。</pre></details>
           </section>
         </div>
@@ -1077,34 +1094,24 @@
     const localRobotBase = 'http://127.0.0.1:8091';
     let localRobotConnected = false;
     let localRobotStatus = null;
-    let currentTeachView = 'success';
 
     function formatJoints(joints) {
       return Array.isArray(joints) ? joints.map(value => Number(value).toFixed(6)).join(', ') : '未记录';
     }
 
-    function renderTeachDetails(selected, events = []) {
+    function renderTeachDetails(selected) {
       const keyframes = selected?.keyframes || [];
       const taught = keyframes.filter(item => ['approach','target','retreat'].includes(item.name));
-      const successes = taught.filter(item => item.recorded);
-      const failures = events.filter(item => item.point === selected?.code && item.ok === false);
-      $('teachSuccessCount').textContent = successes.length;
-      $('teachFailureCount').textContent = failures.length;
-      document.querySelectorAll('.teach-view-button').forEach(button => button.classList.toggle('active', button.dataset.teachView === currentTeachView));
 
       if (!selected) {
         $('teachDetail').textContent = '尚未读取当前穴位流程。';
         return;
       }
-      if (currentTeachView === 'failure') {
-        $('teachDetail').innerHTML = failures.length
-          ? `<ul class="teach-log">${failures.slice().reverse().map(item => `<li><strong>${escapeHtml(item.timestamp || '刚刚')} · ${escapeHtml(item.message)}</strong>${item.output ? escapeHtml(item.output) : ''}</li>`).join('')}</ul>`
-          : '<div>当前穴位没有保存失败记录。</div>';
-        return;
-      }
-      $('teachDetail').innerHTML = successes.length
-        ? `<ul class="teach-log">${successes.map(item => `<li><strong>已保存 · ${escapeHtml(item.label)}</strong>${item.recorded_at ? `${escapeHtml(item.recorded_at)}<br>` : ''}<span>关节角：${escapeHtml(formatJoints(item.joints))}</span></li>`).join('')}</ul>`
-        : '<div>还没有成功保存接近位、指向位或撤离位。</div>';
+      const labels = { approach:'姿态 1', target:'姿态 2', retreat:'姿态 3' };
+      $('teachDetail').innerHTML = `<ul class="teach-log">${taught.map(item => item.recorded
+        ? `<li><strong>${escapeHtml(labels[item.name])} · 已记录</strong>${item.recorded_at ? `${escapeHtml(item.recorded_at)}<br>` : ''}<span>关节角：${escapeHtml(formatJoints(item.joints))}</span></li>`
+        : `<li><strong>${escapeHtml(labels[item.name])} · 待记录</strong><span>点击上方按钮写入当前姿态</span></li>`
+      ).join('')}</ul>`;
     }
 
     function renderCommands(selected) {
@@ -1115,7 +1122,7 @@
       $('ros2Commands').textContent = taughtCommands.length
         ? taughtCommands.map((item, index) => `# ${index + 1} · ${item.label}\n${item.ros2_command}`).join('\n\n')
         : '尚未生成。';
-      $('commandState').textContent = !selected ? '等待三帧' : !selected.ready ? `缺少 ${selected.missing?.length || 0} 帧` : selected.trajectory_distinct ? '三帧已就绪' : '三帧需重录';
+      $('commandState').textContent = !selected ? '等待三帧' : !selected.ready ? `缺少 ${selected.missing?.length || 0} 帧` : '往返演示已就绪';
     }
 
     function renderRobotStatus(status) {
@@ -1127,16 +1134,16 @@
       const health = bridge.health || {};
       const leftAge = health.joint_state_age_s?.left;
       const armReady = bridge.ok && Number.isFinite(leftAge) && leftAge <= 1 && health.tool_frames?.left === 'Arm_Tip';
-      const ready = Boolean(status.tracking && selected?.ready && selected?.trajectory_distinct && action.enabled && !action.running && bridge.ok);
+      const ready = Boolean(status.tracking && selected?.ready && action.enabled && !action.running && bridge.ok);
       $('robotExecute').disabled = !ready;
-      $('robotExecute').textContent = action.running ? '当前穴位动作执行中' :
-        !selected?.ready ? '请先记录接近、指向、撤离三帧' :
-        !selected?.trajectory_distinct ? '三帧数据重复，请重新采集' :
+      const gateText =
+        !selected?.ready ? '请先记录该穴位的 3 个姿态' :
         !bridge.ok ? '先检查机器人连接' :
         !action.enabled ? '真机执行未启用' :
-        !status.tracking ? '等待 AprilTag 定位稳定' : '一键执行当前穴位完整动作';
+        !status.tracking ? '等待 AprilTag 定位稳定' : '';
+      $('robotExecute').textContent = action.running ? '往返演示进行中' : gateText || '播放：正向 3 帧 → 等待 5 秒 → 倒序 3 帧';
       const vision = status.tracking ? `视觉定位稳定（${status.fps} fps）` : '视觉尚未稳定';
-      const taught = selected?.ready ? (selected.trajectory_distinct ? '该穴位关键帧与轨迹已就绪' : selected.trajectory_message) : `待示教：${selected?.missing?.join('、') || '未读取'}`;
+      const taught = selected?.ready ? '该穴位的 3 帧已记录' : `待记录：${selected?.missing?.length ?? 3} 帧`;
       const bridgeText = bridge.checked ? bridge.message : '尚未进行机器人连接检查';
       $('robotStatus').textContent = `${vision}；${taught}；${bridgeText}；${action.message || ''}`;
       const setCheck = (id, label, state) => {
@@ -1150,16 +1157,29 @@
       setCheck('checkBridge', bridge.checked ? (bridge.ok ? '8766 动作桥已就绪' : '8766 动作桥未就绪') : '8766 动作桥待检查', bridge.checked ? Boolean(bridge.ok) : null);
       setCheck('checkArm', bridge.checked ? (armReady ? '左臂状态与 Arm_Tip 正常' : '左臂状态或工具坐标异常') : '左臂状态待检查', bridge.checked ? Boolean(armReady) : null);
       $('robotEmergency').disabled = !bridge.checked;
+      document.querySelectorAll('.robot-point-button').forEach(button => {
+        const flow = status.flows?.find(item => item.code === button.dataset.robotPoint);
+        const active = button.dataset.robotPoint === $('robotPointSelect').value;
+        button.classList.toggle('active', active);
+        button.classList.toggle('ready', Boolean(flow?.ready));
+        button.setAttribute('aria-selected', String(active));
+        button.disabled = Boolean(action.running);
+      });
       document.querySelectorAll('.teach-button').forEach(button => {
         const done = Boolean(selected && !(selected.missing || []).includes(button.dataset.keyframe));
-        const labels = { approach:'接近位', target:'指向位', retreat:'撤离位' };
+        const labels = { approach:'姿态 1', target:'姿态 2', retreat:'姿态 3' };
         button.classList.toggle('done', done);
         button.disabled = Boolean(action.running);
-        button.textContent = `${done ? '已记录' : '记录'}${labels[button.dataset.keyframe]}`;
+        button.textContent = `${done ? '覆盖' : '记录'}${labels[button.dataset.keyframe]}`;
         const frame = selected?.keyframes?.find(item => item.name === button.dataset.keyframe);
         button.title = frame?.recorded ? `已保存关节角：${formatJoints(frame.joints)}` : '尚未记录';
       });
-      renderTeachDetails(selected, action.events || []);
+      document.querySelectorAll('.teach-delete').forEach(button => {
+        const frame = selected?.keyframes?.find(item => item.name === button.dataset.deleteKeyframe);
+        button.disabled = Boolean(action.running || !frame?.recorded);
+        button.title = frame?.recorded ? `删除${frame.label}` : '该关键帧尚未记录';
+      });
+      renderTeachDetails(selected);
       renderCommands(selected);
       $('coordinateList').innerHTML = (status.acupoints || []).map(item => `<div class="coordinate-item"><strong>${item.name} ${item.code}</strong>画面 (${item.x_px}, ${item.y_px})</div>`).join('') || '<div class="coordinate-item"><strong>实时坐标</strong>定位后显示</div>';
       if (!$('robotVideo').src) {
@@ -1189,8 +1209,8 @@
           button.disabled = false;
           button.classList.remove('done');
         });
-        $('teachSuccessCount').textContent = '0';
-        $('teachFailureCount').textContent = '0';
+        document.querySelectorAll('.teach-delete').forEach(button => { button.disabled = true; });
+        document.querySelectorAll('.robot-point-button').forEach(button => { button.disabled = false; button.classList.remove('ready'); });
         $('teachDetail').textContent = '本机服务尚未连接，无法读取保存结果。';
         renderCommands(null);
         $('robotStatus').textContent = '尚未发现机器人电脑上的本机服务。启动后，本页会自动接入视频、示教、连接检查与动作控制，无需打开另一张网页。';
@@ -1249,10 +1269,19 @@
       }
       window.setTimeout(refreshRobotBridge, 400);
     };
-    $('robotPointSelect').onchange = () => { if (localRobotStatus) renderRobotStatus(localRobotStatus); };
-    document.querySelectorAll('.teach-view-button').forEach(button => button.onclick = () => {
-      currentTeachView = button.dataset.teachView;
-      if (localRobotStatus) renderRobotStatus(localRobotStatus);
+    document.querySelectorAll('.robot-point-button').forEach(button => button.onclick = () => {
+      $('robotPointSelect').value = button.dataset.robotPoint;
+      if (!localRobotStatus) {
+        $('robotStatus').textContent = '已选择穴位，等待本机服务连接。';
+        return;
+      }
+      renderRobotStatus(localRobotStatus);
+      const selected = localRobotStatus.flows?.find(item => item.code === button.dataset.robotPoint);
+      if (!selected?.ready) {
+        $('robotStatus').textContent = `${selected?.name || '该穴位'}还需记录 ${selected?.missing?.length ?? 3} 个姿态。`;
+        return;
+      }
+      submitRobotAction('/api/execute', `正在启动 ${selected.name} 往返演示……`, '未演示');
     });
     $('copyExecuteCommand').onclick = async () => {
       const text = $('executeCommand').textContent;
@@ -1267,7 +1296,7 @@
         selection.addRange(range);
         $('copyExecuteCommand').textContent = '已选中，请复制';
       }
-      window.setTimeout(() => { $('copyExecuteCommand').textContent = '复制统一执行命令'; }, 1600);
+      window.setTimeout(() => { $('copyExecuteCommand').textContent = '复制往返演示命令'; }, 1600);
     };
     $('robotPreflight').onclick = async () => {
       if (!localRobotConnected) {
@@ -1298,22 +1327,49 @@
       }
       window.setTimeout(refreshRobotBridge, 300);
     };
-    $('robotExecute').onclick = async () => {
+    async function submitRobotAction(path, pendingText, failurePrefix) {
       if (!localRobotConnected) {
         $('robotStatus').textContent = '本机服务尚未连接，没有提交任何动作。';
         return;
       }
       $('robotExecute').disabled = true;
-      $('robotStatus').textContent = '正在提交受保护动作……';
+      $('robotStatus').textContent = pendingText;
       try {
-        const response = await fetch(`${localRobotBase}/api/execute`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ point:$('robotPointSelect').value }) });
+        const response = await fetch(`${localRobotBase}${path}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ point:$('robotPointSelect').value }) });
         const result = await response.json();
-        $('robotStatus').textContent = result.ok ? result.action.message : `未执行：${result.error}`;
+        $('robotStatus').textContent = result.ok ? result.action.message : `${failurePrefix}：${result.error}`;
       } catch (_) {
         $('robotStatus').textContent = '本机服务连接中断，没有确认动作已提交。请检查本页连接状态。';
       }
       window.setTimeout(refreshRobotBridge, 400);
-    };
+    }
+    $('robotExecute').onclick = () => submitRobotAction('/api/execute', '正在提交正向三帧、等待 5 秒、倒序三帧的往返演示……', '未演示');
+    document.querySelectorAll('.teach-delete').forEach(button => button.onclick = async () => {
+      if (!localRobotConnected) {
+        $('robotStatus').textContent = '本机示教服务尚未连接，没有删除关键帧。';
+        return;
+      }
+      const labels = { approach:'姿态 1', target:'姿态 2', retreat:'姿态 3' };
+      const keyframe = button.dataset.deleteKeyframe;
+      const pointName = $('robotPointSelect').selectedOptions[0]?.textContent || $('robotPointSelect').value;
+      if (!window.confirm(`确认删除 ${pointName} 的${labels[keyframe]}？删除后必须重新采集才能执行。`)) return;
+      button.disabled = true;
+      $('robotStatus').textContent = `正在删除${labels[keyframe]}……`;
+      try {
+        const response = await fetch(`${localRobotBase}/api/delete-keyframe`, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ point:$('robotPointSelect').value, keyframe }),
+          signal:AbortSignal.timeout(4000)
+        });
+        const result = await response.json();
+        if (!response.ok || !result.ok) throw new Error(result.error || '删除失败');
+        $('robotStatus').textContent = result.action.message;
+      } catch (error) {
+        $('robotStatus').textContent = `没有删除：${error.message || '本机服务连接失败'}`;
+      }
+      window.setTimeout(refreshRobotBridge, 250);
+    });
     document.querySelectorAll('.teach-button').forEach(button => button.onclick = async () => {
       if (!localRobotConnected) {
         $('robotStatus').textContent = '本机示教服务尚未连接，没有记录关键帧。';
