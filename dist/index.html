@@ -1083,7 +1083,10 @@
       render();
     }
 
-    const localRobotBase = 'http://127.0.0.1:8091';
+    const localHostnames = new Set(['127.0.0.1', 'localhost']);
+    const localRobotBase = localHostnames.has(window.location.hostname)
+      ? window.location.origin
+      : 'http://127.0.0.1:8008';
     let localRobotConnected = false;
     let localRobotStatus = null;
 

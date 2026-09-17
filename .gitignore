@@ -1,0 +1,9 @@
+.openai/_site_stage_*/
+.openai/*.tar.gz
+.sites-runtime/
+data/
+robot_backend/data/
+robot_backend/yolo_lab_data/
+robot_backend/__pycache__/
+robot_backend/task1/__pycache__/
+*.pyc
