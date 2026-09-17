@@ -1142,8 +1142,12 @@
       setCheck('checkArm', bridge.checked ? (armReady ? `${selectedArmLabel}状态与 Arm_Tip 正常` : `${selectedArmLabel}状态或工具坐标异常`) : `${selectedArmLabel}状态待检查`, bridge.checked ? Boolean(armReady) : null);
       $('teachArmLabel').textContent = selected ? `${selected.name} · ${selectedArmLabel}` : '当前所选穴位';
       $('robotEmergency').disabled = !bridge.checked;
-      $('robotEnable').disabled = Boolean(action.running || !action.enabled || action.robot_enabled || !bridge.ok);
-      $('robotDisable').disabled = Boolean(action.running || !action.robot_enabled);
+      // Keep both state controls available whenever the local service permits
+      // robot control. The request itself reports a clear bridge error if the
+      // hardware connection drops between status refreshes.
+      const robotToggleUnavailable = Boolean(action.running || !action.enabled);
+      $('robotEnable').disabled = robotToggleUnavailable;
+      $('robotDisable').disabled = robotToggleUnavailable;
       document.querySelectorAll('.robot-point-button').forEach(button => {
         const flow = status.flows?.find(item => item.code === button.dataset.robotPoint);
         const active = button.dataset.robotPoint === $('robotPointSelect').value;
