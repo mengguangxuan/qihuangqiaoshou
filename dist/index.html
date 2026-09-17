@@ -1189,7 +1189,7 @@
       $('needleExecute').disabled = !ready;
       $('needleExecute').textContent = action.running ? '动作或示教进行中' : gateText || '一键执行七阶段演示';
       const readinessText = flow.ready ? '七阶段已完成示教' : `还需完善 ${flow.missing?.length || 0} 项`;
-      $('needleStatus').textContent = `${readinessText}；共 ${flow.total_steps} 个步骤、${flow.recorded_poses} 个姿态；速度 ${flow.speed}，加速度 ${flow.acceleration}；左臂${armEnabled.left ? '已使能' : '已掉使能'}；${action.message || ''}`;
+      $('needleStatus').textContent = `${readinessText}；共 ${flow.total_steps} 个步骤、${flow.recorded_poses} 个姿态；速度 ${flow.speed}，加速度 ${flow.acceleration}；左臂${armEnabled.left == null ? '使能状态未确认' : armEnabled.left ? '已使能' : '已掉使能'}；${action.message || ''}`;
       $('needlePreflight').disabled = Boolean(action.running);
       $('needleEmergency').disabled = !bridge.checked;
       $('needleStageList').innerHTML = flow.stages.map(stage => {
@@ -1197,7 +1197,7 @@
         const rows = stage.steps.map((step, index) => {
           const isPose = step.type === 'pose';
           const detail = isPose
-            ? (step.recorded ? `已记录 ${escapeHtml(step.recorded_at || '')} · ${escapeHtml(formatJoints(step.joints))}` : '尚未记录关节角')
+            ? (step.recorded ? `${step.needs_reteach ? '旧反馈，需重新记录' : '已记录'} ${escapeHtml(step.recorded_at || '')} · ${escapeHtml(formatJoints(step.joints))}` : '尚未记录关节角')
             : `固定值：${escapeHtml((step.positions || []).join(' '))}`;
           return `<li class="needle-step ${isPose ? 'pose' : 'gesture'}">
             <div class="needle-step-main"><strong>${escapeHtml(step.label)}</strong><small>${detail}</small></div>
@@ -1251,7 +1251,7 @@
       const vision = status.tracking ? `视觉定位稳定（${status.fps} fps）` : '视觉尚未稳定';
       const taught = selected?.ready ? '该穴位的 3 帧已记录' : `待记录：${selected?.missing?.length ?? 3} 帧`;
       const bridgeText = bridge.checked ? bridge.message : '尚未进行机器人连接检查';
-      const enableText = `左臂${armEnabled.left ? '已使能' : '已掉使能'}；右臂${armEnabled.right ? '已使能' : '已掉使能'}`;
+      const enableText = `左臂${armEnabled.left == null ? '使能状态未确认' : armEnabled.left ? '已使能' : '已掉使能'}；右臂${armEnabled.right == null ? '使能状态未确认' : armEnabled.right ? '已使能' : '已掉使能'}`;
       $('robotStatus').textContent = `${vision}；${taught}；${bridgeText}；${enableText}；${action.message || ''}`;
       const setCheck = (id, label, state) => {
         const item = $(id);
@@ -1273,7 +1273,7 @@
         button.disabled = robotToggleUnavailable;
         const arm = button.dataset.robotArm;
         const enables = button.dataset.robotEnabled === 'true';
-        button.classList.toggle('active', Boolean(armEnabled[arm]) === enables);
+        button.classList.toggle('active', armEnabled[arm] != null && Boolean(armEnabled[arm]) === enables);
       });
       document.querySelectorAll('.robot-point-button').forEach(button => {
         const flow = status.flows?.find(item => item.code === button.dataset.robotPoint);

@@ -9,7 +9,7 @@ def complete_flow():
     stages = []
     for index, stage_id in enumerate(needle_runner.STAGE_IDS, 1):
         steps = [] if stage_id == "wait_5s" else [
-            {"id": f"pose-{index}", "type": "pose", "label": f"姿态 {index}", "joints": [float(index)] * 7}
+            {"id": f"pose-{index}", "type": "pose", "label": f"姿态 {index}", "joints": [float(index)] * 7, "feedback_version": 1}
         ]
         if stage_id == "take_large":
             steps.append({"id": "pinch", "type": "pinch"})
@@ -29,6 +29,13 @@ def complete_flow():
 
 
 class NeedleFlowTests(unittest.TestCase):
+    def test_legacy_feedback_cannot_be_executed(self):
+        flow = complete_flow()
+        del flow["stages"][0]["steps"][0]["feedback_version"]
+        ready, missing = needle_runner.readiness(flow)
+        self.assertFalse(ready)
+        self.assertTrue(any("需覆盖重录" in item for item in missing))
+
     def test_empty_non_wait_stage_is_not_ready(self):
         flow = complete_flow()
         flow["stages"][0]["steps"] = []

@@ -24,7 +24,7 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import UInt8MultiArray
 
 from lbot_arm_interfaces.srv import (
-    ForwardKinematics, GetCurrentFrame, InverseKinematics, MoveJ, MoveJP, SetEmergency,
+    ForwardKinematics, GetCurrentFrame, InverseKinematics, MoveJ, MoveJP, SetEmergency, SetEnable,
 )
 
 
@@ -63,6 +63,7 @@ class LBotBridge(Node):
         self.joints: dict[str, list[float]] = {"left": [], "right": []}
         self.poses: dict[str, dict[str, Any]] = {"left": {}, "right": {}}
         self.updated_at: dict[str, float] = {"left": 0.0, "right": 0.0}
+        self.source_stamps = {"left": 0, "right": 0}
         self.service_clients: dict[tuple[str, str], Any] = {}
         for arm in ("left", "right"):
             prefix = f"{self.robot_namespace}/{arm}_arm"
@@ -72,6 +73,7 @@ class LBotBridge(Node):
             self.service_clients[(arm, "fk")] = self.create_client(ForwardKinematics, f"{prefix}/forward_kinematics")
             self.service_clients[(arm, "frame")] = self.create_client(GetCurrentFrame, f"{prefix}/get_current_tool_frame")
             self.service_clients[(arm, "emergency")] = self.create_client(SetEmergency, f"{prefix}/set_emergency_stop")
+            self.service_clients[(arm, "enable")] = self.create_client(SetEnable, f"{prefix}/set_enable")
             self.create_subscription(JointState, f"{prefix}/joint_states", lambda msg, a=arm: self._joint(a, msg), 10)
             self.create_subscription(PoseStamped, f"{prefix}/pose_states", lambda msg, a=arm: self._pose(a, msg), 10)
         self.hand_publishers = {
@@ -87,11 +89,17 @@ class LBotBridge(Node):
         # enable state.  Values become known only after an explicit per-arm
         # enable/disable request is sent through this bridge instance.
         self.emergency_state = {arm: None for arm in ("left", "right")}
+        self.enable_state = {arm: None for arm in ("left", "right")}
 
     def _joint(self, arm: str, message: JointState) -> None:
+        stamp = message.header.stamp.sec * 1_000_000_000 + message.header.stamp.nanosec
         with self.state_lock:
+            # A repeated cached message must not make the feedback fresh again.
+            if not stamp or stamp == self.source_stamps[arm]:
+                return
+            self.source_stamps[arm] = stamp
             self.joints[arm] = [float(v) for v in message.position]
-            self.updated_at[arm] = time.time()
+            self.updated_at[arm] = min(time.time(), stamp / 1_000_000_000)
 
     def _pose(self, arm: str, message: PoseStamped) -> None:
         pose = message.pose
@@ -203,6 +211,8 @@ class LBotBridge(Node):
             now = time.time()
             return {"ok": True, "joints": dict(self.joints), "poses": dict(self.poses),
                     "emergency": dict(self.emergency_state),
+                    "arm_enabled": dict(self.enable_state),
+                    "source_stamp_ns": dict(self.source_stamps),
                     "joint_state_age_s": {arm: now - stamp if stamp else None
                                           for arm, stamp in self.updated_at.items()},
                     "updated_at": dict(self.updated_at)}
@@ -288,6 +298,18 @@ class LBotBridge(Node):
         return {"ok": True, "speed_scale": speed_scale,
                 "duration_seconds": duration, "steps": steps}
 
+    def set_enable(self, body: dict[str, Any]) -> dict[str, Any]:
+        arm = self._arm(body.get("arm"))
+        enabled = body.get("enable")
+        if not isinstance(enabled, bool):
+            raise ValueError("enable 必须是布尔值")
+        request = SetEnable.Request()
+        request.enable = enabled
+        self._call(self.service_clients[(arm, "enable")], request)
+        with self.state_lock:
+            self.enable_state[arm] = enabled
+        return {"ok": True, "arm": arm, "enabled": enabled}
+
     def emergency(self, arm: Any, enabled: bool) -> dict[str, Any]:
         targets = ("left", "right") if arm in (None, "") else (self._arm(arm),)
         if enabled:
@@ -353,6 +375,7 @@ class Handler(BaseHTTPRequestHandler):
                 "/inverse_kinematics": lambda: self.bridge.ik(body),
                 "/forward_kinematics": lambda: self.bridge.fk(body),
                 "/hand": lambda: self.bridge.hand(body),
+                "/set_enable": lambda: self.bridge.set_enable(body),
                 "/emergency_stop": lambda: self.bridge.emergency(
                     body.get("arm"), bool(body.get("emergency", True))
                 ),

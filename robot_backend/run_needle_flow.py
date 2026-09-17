@@ -53,6 +53,8 @@ def readiness(flow: dict) -> tuple[bool, list[str]]:
         for index, step in enumerate(steps, 1):
             if step.get("type") == "pose" and step.get("joints") is None:
                 missing.append(f"{stage['label']}姿态{index}未记录")
+            elif step.get("type") == "pose" and step.get("feedback_version") != 1:
+                missing.append(f"{stage['label']}姿态{index}为旧反馈记录，需覆盖重录")
             elif step.get("type") not in {"pose", "pinch", "release"}:
                 missing.append(f"{stage['label']}步骤{index}类型无效")
     return not missing, missing

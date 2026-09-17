@@ -175,3 +175,4 @@ if ($EnableRobot) {
     Write-Host "真机动作控制未开放"
 }
 Write-Host "日志：$stdoutLog"
+exit 0

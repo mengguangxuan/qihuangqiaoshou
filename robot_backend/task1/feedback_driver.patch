@@ -1,0 +1,58 @@
+diff --git a/src/lbot_driver/src/lbot_driver.cpp b/src/lbot_driver/src/lbot_driver.cpp
+--- a/src/lbot_driver/src/lbot_driver.cpp
++++ b/src/lbot_driver/src/lbot_driver.cpp
+@@ -24,0 +25,9 @@
++// Qihuang feedback v1: timestamp actual source progress, never timer ticks.
++static uint64_t feedback_source_stamp[2] = {0, 0};
++static std::chrono::steady_clock::time_point feedback_received[2];
++static int64_t feedback_ros_ns[2] = {0, 0};
++static uint64_t source_stamp(const lbot_arm_state_t& arm, uint64_t fallback) {
++    const auto stamp = uint64_t(arm.sec) * 1000000000ULL + arm.nanosec;
++    return stamp ? stamp : fallback;
++}
++
+@@ -31,0 +41,14 @@
++        const uint64_t stamps[2] = {
++            source_stamp(state->left_arm, state->system_timestamp),
++            source_stamp(state->right_arm, state->system_timestamp)};
++        for (int arm = 0; arm < 2; ++arm) {
++            if (stamps[arm] && stamps[arm] != feedback_source_stamp[arm]) {
++                feedback_source_stamp[arm] = stamps[arm];
++                feedback_received[arm] = std::chrono::steady_clock::now();
++                feedback_ros_ns[arm] = lbot_driver::LBot::g_instance->get_clock()->now().nanoseconds();
++            }
++        }
+@@ -191,9 +215,22 @@
+     lbot_full_state_t state;
++    int64_t received_ns[2];
+     {
+         std::lock_guard<std::mutex> lock(state_mutex_);
+         state = current_lbot_state_;
++        const auto now = std::chrono::steady_clock::now();
++        for (int arm = 0; arm < 2; ++arm) {
++            if (!feedback_source_stamp[arm] ||
++                now - feedback_received[arm] > std::chrono::milliseconds(500)) {
++                RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 2000,
++                    "Controller feedback stale for arm %d; cached joints are not published", arm);
++                return;
++            }
++            received_ns[arm] = feedback_ros_ns[arm];
++        }
+     }
+ 
+-    rclcpp::Time time_now = this->get_clock()->now();
++    // Preserve source receipt time even if the 50Hz timer repeats the sample.
++    const rclcpp::Time left_feedback_time(received_ns[0]);
++    const rclcpp::Time right_feedback_time(received_ns[1]);
+@@ -202 +239 @@
+-    left_joint.header.stamp = time_now;
++    left_joint.header.stamp = left_feedback_time;
+@@ -229 +266 @@
+-    left_pose.header.stamp = time_now;
++    left_pose.header.stamp = left_feedback_time;
+@@ -246 +283 @@
+-    right_joint.header.stamp = time_now;
++    right_joint.header.stamp = right_feedback_time;
+@@ -268 +305 @@
+-    right_pose.header.stamp = time_now;
++    right_pose.header.stamp = right_feedback_time;

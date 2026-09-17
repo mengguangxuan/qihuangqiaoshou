@@ -96,7 +96,7 @@ def capture_joint_state_from_bridge(bridge_url: str, timeout: float, arm: str = 
     state = bridge_request(bridge_url, "/state", timeout=timeout)
     ages = state.get("joint_state_age_s") or {}
     age = ages.get(arm)
-    if age is None or float(age) > 0.5:
+    if age is None or not math.isfinite(float(age)) or not 0 <= float(age) <= 0.5:
         raise RuntimeError(f"8766 返回的{arm_label} joint_states 已过期：{age}")
     joints = (state.get("joints") or {}).get(arm)
     return [round(value, 6) for value in validate_joints(joints, f"{arm_label}当前姿态")]

@@ -264,12 +264,12 @@ class ActionController:
         self.lock = threading.Lock()
         self.event_lock = threading.Lock()
         self.events = self._load_events()
-        arm_enabled = {"left": False, "right": False}
+        arm_enabled = {"left": None, "right": None}
         restored_arms: set[str] = set()
         for event in self.events:
             arm = str(event.get("output", ""))
-            if arm in arm_enabled and event.get("kind") in {"robot_enable", "robot_disable"}:
-                arm_enabled[arm] = event["kind"] == "robot_enable"
+            if event.get("ok") and arm in arm_enabled and event.get("kind") in {"arm_enable", "arm_disable"}:
+                arm_enabled[arm] = event["kind"] == "arm_enable"
                 restored_arms.add(arm)
         self.state = {
             "enabled": enabled,
@@ -279,7 +279,7 @@ class ActionController:
             "point": None,
             "phase": "idle",
             "message": "真机执行未启用" if not enabled else (
-                "已恢复上一次左右臂控制状态" if restored_arms else "等待选择穴位"
+                "已恢复上次真实使能操作记录" if restored_arms else "机械臂使能状态未确认；启动未改变机械臂状态"
             ),
             "bridge": {"checked": False, "ok": False, "message": "尚未检查机器人动作桥"},
             "updated_at": time.time(),
@@ -400,7 +400,7 @@ class ActionController:
             if self.state["running"]:
                 raise RuntimeError("动作正在执行，不能切换使能状态")
         status, payload = self._bridge_request(
-            "POST", "/emergency_stop", {"arm": arm, "emergency": not enabled}
+            "POST", "/set_enable", {"arm": arm, "enable": enabled}
         )
         if status != HTTPStatus.OK or not payload.get("ok"):
             raise RuntimeError(payload.get("error") or f"动作桥返回 {status}")
@@ -416,7 +416,7 @@ class ActionController:
                 "message": message,
                 "updated_at": time.time(),
             })
-        self._record_event("robot_enable" if enabled else "robot_disable", True, message, output=arm)
+        self._record_event("arm_enable" if enabled else "arm_disable", True, message, output=arm)
         return self.get_state()
 
     def flow_info(self, code: str) -> dict:
@@ -532,6 +532,9 @@ class ActionController:
                     missing.append(f"{stage['label']}步骤{index}类型无效")
                 joints = raw.get("joints")
                 recorded = step_type != "pose" or (isinstance(joints, list) and len(joints) == 7)
+                needs_reteach = step_type == "pose" and recorded and raw.get("feedback_version") != 1
+                if needs_reteach:
+                    missing.append(f"{raw.get('label', stage['label'])}为旧反馈记录，需覆盖重录")
                 if step_type == "pose" and not recorded:
                     missing.append(f"{stage['label']}姿态{index}未记录")
                 if step_type == "pose" and recorded:
@@ -542,6 +545,7 @@ class ActionController:
                     "type": step_type,
                     "label": raw.get("label") or (gesture or {}).get("label") or f"步骤 {index}",
                     "recorded": recorded,
+                    "needs_reteach": needs_reteach,
                     "joints": joints,
                     "recorded_at": raw.get("recorded_at"),
                     "positions": (gesture or {}).get("positions"),
@@ -575,8 +579,8 @@ class ActionController:
             raise RuntimeError(state.get("error") or f"动作桥返回 {status}")
         age = (state.get("joint_state_age_s") or {}).get("left")
         joints = (state.get("joints") or {}).get("left")
-        if age is None or float(age) > 0.5:
-            raise RuntimeError(f"左臂 joint_states 已过期：{age}")
+        if age is None or not math.isfinite(float(age)) or not 0 <= float(age) <= 0.5:
+            raise RuntimeError(f"左臂真实反馈已过期，未保存缓存姿态：{age}")
         if not isinstance(joints, list) or len(joints) < 7:
             raise RuntimeError("动作桥没有返回完整的左臂 7 关节状态")
         values = [round(float(item), 6) for item in joints[:7]]
@@ -599,7 +603,7 @@ class ActionController:
             stage = self._needle_stage(flow, stage_id)
             step = {"id": f"{stage_id}-{time.time_ns()}", "type": step_type}
             if step_type == "pose":
-                step.update({"joints": joints, "hold": 0.0,
+                step.update({"joints": joints, "hold": 0.0, "feedback_version": 1,
                              "recorded_at": time.strftime("%Y-%m-%d %H:%M:%S"),
                              "recorded_from": "http://127.0.0.1:8766/state"})
             stage.setdefault("steps", []).append(step)
@@ -631,7 +635,7 @@ class ActionController:
             step = next((item for item in stage.get("steps") or [] if item.get("id") == step_id), None)
             if step is None or step.get("type") != "pose":
                 raise ValueError("找不到要覆盖的姿态关键帧")
-            step.update({"joints": joints, "recorded_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+            step.update({"joints": joints, "feedback_version": 1, "recorded_at": time.strftime("%Y-%m-%d %H:%M:%S"),
                          "recorded_from": "http://127.0.0.1:8766/state"})
             self._write_needle_flow(flow)
             message, ok = f"已覆盖记录“{step.get('label', '左臂姿态')}”", True
