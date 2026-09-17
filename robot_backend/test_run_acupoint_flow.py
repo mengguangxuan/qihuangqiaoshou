@@ -73,6 +73,7 @@ class ExecuteOrderTests(unittest.TestCase):
                 {"name": "approach", "label": "接近位", "joints": [1.0] * 7},
                 {"name": "target", "label": "指向位", "joints": [2.0] * 7},
                 {"name": "retreat", "label": "撤离位", "joints": [3.0] * 7},
+                {"name": "stage_2_return", "label": "退回上场二", "joints": [8.0] * 7},
                 {"name": "stage_1_return", "label": "退场", "joints": [9.0] * 7},
             ],
         }
@@ -80,6 +81,7 @@ class ExecuteOrderTests(unittest.TestCase):
         commanded_arms = []
         hand_commands = []
         sleeps = []
+        events = []
 
         def fake_bridge_request(_base_url, path, body=None, timeout=45.0):
             del timeout
@@ -87,9 +89,11 @@ class ExecuteOrderTests(unittest.TestCase):
                 return {"ok": True}
             if path == "/hand":
                 hand_commands.append((body["hand"], body["positions"]))
+                events.append(("hand", body["positions"]))
                 return {"ok": True}
             commanded_arms.append(body["arm"])
             moved.append(body["joints"][0])
+            events.append(("move", body["joints"][0]))
             return {"ok": True}
 
         with patch.object(flow_runner, "bridge_request", side_effect=fake_bridge_request), \
@@ -102,28 +106,30 @@ class ExecuteOrderTests(unittest.TestCase):
                 reverse=reverse,
                 round_trip=round_trip,
             )
-        return moved, sleeps, commanded_arms, hand_commands
+        return moved, sleeps, commanded_arms, hand_commands, events
 
     def test_execute_plays_only_three_taught_frames_forward(self):
-        moved, _, _, _ = self.run_flow()
+        moved, _, _, _, _ = self.run_flow()
         self.assertEqual([1.0, 2.0, 3.0], moved)
 
     def test_return_plays_three_taught_frames_in_reverse(self):
-        moved, _, _, hand_commands = self.run_flow(reverse=True)
-        self.assertEqual([3.0, 2.0, 1.0], moved)
+        moved, _, _, hand_commands, _ = self.run_flow(reverse=True)
+        self.assertEqual([3.0, 2.0, 1.0, 8.0, 9.0, 0.0], moved)
         self.assertEqual([], hand_commands)
 
     def test_round_trip_plays_forward_waits_five_seconds_then_reverses(self):
-        moved, sleeps, _, hand_commands = self.run_flow(round_trip=True)
-        self.assertEqual([1.0, 2.0, 3.0, 3.0, 2.0, 1.0], moved)
+        moved, sleeps, _, hand_commands, events = self.run_flow(round_trip=True)
+        self.assertEqual([1.0, 2.0, 3.0, 3.0, 2.0, 1.0, 8.0, 9.0, 0.0], moved)
         self.assertEqual(5.0, sleeps[3])
         self.assertEqual([
             ("left", flow_runner.POINT_GESTURE),
             ("left", flow_runner.REST_GESTURE),
         ], hand_commands)
+        self.assertEqual(("move", 0.0), events[-2])
+        self.assertEqual(("hand", flow_runner.REST_GESTURE), events[-1])
 
     def test_execute_uses_configured_right_arm(self):
-        _, _, commanded_arms, hand_commands = self.run_flow(arm="right")
+        _, _, commanded_arms, hand_commands, _ = self.run_flow(arm="right")
         self.assertEqual(["right", "right", "right"], commanded_arms)
         self.assertEqual([
             ("right", flow_runner.POINT_GESTURE),

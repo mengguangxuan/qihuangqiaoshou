@@ -1,7 +1,7 @@
 param(
     [string]$WslDistro = 'Ubuntu-24.04',
     [int]$Port = 8008,
-    [double]$SpeedScale = 0.15
+    [double]$SpeedScale = 1.0
 )
 
 $ErrorActionPreference = 'Stop'
@@ -22,4 +22,4 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "Qihuang Qiaoshou is ready: http://127.0.0.1:$Port/"
-Write-Host 'Robot remains disabled until the operator clicks Robot Enable.'
+Write-Host 'Robot enable state is preserved; only the per-arm controls change it.'

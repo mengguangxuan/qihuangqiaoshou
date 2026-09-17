@@ -52,7 +52,7 @@ http://127.0.0.1:8008/
 ## 更换端口或 WSL 名称
 
 ```powershell
-.\start_qihuang_platform.ps1 -WslDistro Ubuntu-24.04 -Port 8008 -SpeedScale 0.15
+.\start_qihuang_platform.ps1 -WslDistro Ubuntu-24.04 -Port 8008 -SpeedScale 1.0
 ```
 
-速度缩放必须在 `(0, 0.4]`，迁移后的默认值为 `0.15`。
+五个穴位流程的运动参数为 `speed=1.5`、`acceleration=1.0`；速度缩放必须在 `(0, 1]`，默认值为 `1.0`。

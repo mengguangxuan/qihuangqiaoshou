@@ -7,7 +7,7 @@
     [switch]$StartRobotStack,
     [string]$RobotNamespace = 'robot1',
     [string]$RobotBridgeUrl = 'http://127.0.0.1:8766',
-    [double]$SpeedScale = 0.15
+    [double]$SpeedScale = 1.0
 )
 
 $ErrorActionPreference = 'Stop'
@@ -105,8 +105,8 @@ if ($StartCameraStack) {
 
 # Starting the platform always replaces the action bridge.  A stale bridge can
 # keep port 8766 occupied while no longer being connected to the ROS2 graph.
-# Starting the driver and bridge is passive; motion still requires --enable-robot
-# plus an explicit enable/action request from the UI.
+# Starting the driver and bridge is passive and preserves the controller's
+# current enable state; it never sends enable or disable by itself.
 & (Join-Path $projectRoot 'start_task1_robot_only.ps1') -Distribution $WslDistro
 
 try {

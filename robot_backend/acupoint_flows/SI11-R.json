@@ -5,8 +5,8 @@
     "name": "右天宗"
   },
   "arm": "right",
-  "speed": 0.8,
-  "acceleration": 0.8,
+  "speed": 1.5,
+  "acceleration": 1.0,
   "keyframes": [
     {
       "name": "stage_1",

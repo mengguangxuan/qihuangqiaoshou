@@ -21,6 +21,7 @@ TEACHABLE = {"approach", "target", "retreat"}
 ARMS = {"left", "right"}
 POINT_GESTURE = [0, 0, 255, 0, 0, 0]
 REST_GESTURE = [255, 255, 255, 255, 255, 255]
+ZERO_JOINTS = [0.0] * 7
 
 
 def flow_path(code: str) -> Path:
@@ -159,7 +160,17 @@ def execute(flow: dict, bridge_url: str, speed_scale: float, timeout: float,
     if round_trip:
         sequences.append(list(reversed(forward_names)))
 
-    total = sum(len(sequence) for sequence in sequences)
+    # A complete return follows the taught frames back through the two fixed
+    # staging poses and finally commands the seven arm joints to their origin.
+    # The one-finger gesture is deliberately held until every return move has
+    # completed; releasing it earlier made the hand open while the arm was
+    # still moving away from the acupoint.
+    return_names = ["stage_2_return", "stage_1_return"] if reverse or round_trip else []
+    for frame_name in return_names:
+        if frame_name not in by_name:
+            raise RuntimeError(f"流程缺少返程关键帧：{frame_name}")
+
+    total = sum(len(sequence) for sequence in sequences) + len(return_names) + (1 if return_names else 0)
     step = 0
     gesture_active = False
     try:
@@ -174,11 +185,7 @@ def execute(flow: dict, bridge_url: str, speed_scale: float, timeout: float,
                 pause = max(0.0, float(turnaround_pause))
                 print(f"[等待] 正向三帧已完成，停留 {pause:g} 秒", flush=True)
                 time.sleep(pause)
-                print(f"[手势] {arm} 手恢复后倒序返回", flush=True)
-                bridge_request(bridge_url, "/hand", {
-                    "hand": arm, "positions": REST_GESTURE, "speed_scale": 1.0,
-                })
-                gesture_active = False
+                print(f"[手势] {arm} 手保持 1，开始倒序返回", flush=True)
             for frame_name in ordered_names:
                 frame = by_name[frame_name]
                 joints = validate_joints(frame.get("joints"), frame.get("label", frame.get("name", "?")))
@@ -191,7 +198,32 @@ def execute(flow: dict, bridge_url: str, speed_scale: float, timeout: float,
                     "acceleration": float(flow.get("acceleration", 0.8)) * speed_scale,
                 })
                 time.sleep(max(0.0, float(frame.get("hold", 0.0))))
+        for frame_name in return_names:
+            frame = by_name[frame_name]
+            joints = validate_joints(frame.get("joints"), frame.get("label", frame_name))
+            step += 1
+            print(f"[{step}/{total}] {frame['label']}", flush=True)
+            bridge_request(bridge_url, "/move_joint", {
+                "arm": arm,
+                "joints": joints,
+                "speed": float(flow.get("speed", 0.8)) * speed_scale,
+                "acceleration": float(flow.get("acceleration", 0.8)) * speed_scale,
+            })
+            time.sleep(max(0.0, float(frame.get("hold", 0.0))))
+        if return_names:
+            step += 1
+            print(f"[{step}/{total}] {arm} 臂关节归零", flush=True)
+            bridge_request(bridge_url, "/move_joint", {
+                "arm": arm,
+                "joints": ZERO_JOINTS,
+                "speed": float(flow.get("speed", 0.8)) * speed_scale,
+                "acceleration": float(flow.get("acceleration", 0.8)) * speed_scale,
+            })
         if gesture_active:
+            if return_names:
+                print(f"[手势] {arm} 臂返程与关节归零完成，手势恢复", flush=True)
+            else:
+                print(f"[手势] {arm} 臂三帧完成，手势恢复", flush=True)
             bridge_request(bridge_url, "/hand", {
                 "hand": arm, "positions": REST_GESTURE, "speed_scale": 1.0,
             })
@@ -216,11 +248,11 @@ def main() -> int:
     parser.add_argument("--teach", choices=sorted(TEACHABLE), help="记录当前左臂关节为指定关键帧")
     parser.add_argument("--namespace", default="robot1")
     parser.add_argument("--bridge-url", default="http://127.0.0.1:8766")
-    parser.add_argument("--speed-scale", type=float, default=0.2)
+    parser.add_argument("--speed-scale", type=float, default=1.0)
     parser.add_argument("--interface-timeout", type=float, default=6.0)
     args = parser.parse_args()
-    if not math.isfinite(args.speed_scale) or not 0 < args.speed_scale <= 0.4:
-        parser.error("--speed-scale 必须在 (0, 0.4]，首次建议 0.1")
+    if not math.isfinite(args.speed_scale) or not 0 < args.speed_scale <= 1.0:
+        parser.error("--speed-scale 必须在 (0, 1]")
 
     path, flow = load_flow(args.point)
     if args.teach:

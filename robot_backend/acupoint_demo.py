@@ -258,13 +258,23 @@ class ActionController:
         self.lock = threading.Lock()
         self.event_lock = threading.Lock()
         self.events = self._load_events()
+        arm_enabled = {"left": False, "right": False}
+        restored_arms: set[str] = set()
+        for event in self.events:
+            arm = str(event.get("output", ""))
+            if arm in arm_enabled and event.get("kind") in {"robot_enable", "robot_disable"}:
+                arm_enabled[arm] = event["kind"] == "robot_enable"
+                restored_arms.add(arm)
         self.state = {
             "enabled": enabled,
-            "robot_enabled": False,
+            "arm_enabled": arm_enabled,
+            "robot_enabled": any(arm_enabled.values()),
             "running": False,
             "point": None,
             "phase": "idle",
-            "message": "真机执行未启用" if not enabled else "等待选择穴位",
+            "message": "真机执行未启用" if not enabled else (
+                "已恢复上一次左右臂控制状态" if restored_arms else "等待选择穴位"
+            ),
             "bridge": {"checked": False, "ok": False, "message": "尚未检查机器人动作桥"},
             "updated_at": time.time(),
         }
@@ -362,29 +372,45 @@ class ActionController:
         except Exception as exc:  # noqa: BLE001
             phase, message = "error", f"软件急停请求失败：{exc}；请立即使用实体急停"
         with self.lock:
-            self.state.update({"running": False, "robot_enabled": False, "phase": phase, "message": message, "updated_at": time.time()})
+            self.state.update({
+                "running": False,
+                "arm_enabled": {"left": False, "right": False},
+                "robot_enabled": False,
+                "phase": phase,
+                "message": message,
+                "updated_at": time.time(),
+            })
         if phase == "error":
             raise RuntimeError(message)
         return self.get_state()
 
-    def set_robot_enabled(self, enabled: bool) -> dict:
+    def set_robot_enabled(self, arm: str, enabled: bool) -> dict:
+        arm = str(arm or "").strip().lower()
+        if arm not in {"left", "right"}:
+            raise ValueError("必须指定 arm=left 或 arm=right")
         if enabled and not self.enabled:
             raise RuntimeError("本机服务处于安全预览模式；请用 --enable-robot 重启后再使能")
         with self.lock:
             if self.state["running"]:
                 raise RuntimeError("动作正在执行，不能切换使能状态")
-        status, payload = self._bridge_request("POST", "/emergency_stop", {"emergency": not enabled})
+        status, payload = self._bridge_request(
+            "POST", "/emergency_stop", {"arm": arm, "emergency": not enabled}
+        )
         if status != HTTPStatus.OK or not payload.get("ok"):
             raise RuntimeError(payload.get("error") or f"动作桥返回 {status}")
-        message = "机器人已使能，可以执行点穴" if enabled else "机器人已掉使能"
+        arm_label = "左臂" if arm == "left" else "右臂"
+        message = f"{arm_label}已使能，可以执行对应穴位" if enabled else f"{arm_label}已掉使能"
         with self.lock:
+            arm_enabled = dict(self.state["arm_enabled"])
+            arm_enabled[arm] = enabled
             self.state.update({
-                "robot_enabled": enabled,
+                "arm_enabled": arm_enabled,
+                "robot_enabled": any(arm_enabled.values()),
                 "phase": "enabled" if enabled else "disabled",
                 "message": message,
                 "updated_at": time.time(),
             })
-        self._record_event("robot_enable" if enabled else "robot_disable", True, message)
+        self._record_event("robot_enable" if enabled else "robot_disable", True, message, output=arm)
         return self.get_state()
 
     def flow_info(self, code: str) -> dict:
@@ -455,6 +481,7 @@ class ActionController:
     def get_state(self) -> dict:
         with self.lock:
             state = dict(self.state)
+            state["arm_enabled"] = dict(self.state["arm_enabled"])
         state["events"] = self.history()
         return state
 
@@ -466,8 +493,8 @@ class ActionController:
         with self.lock:
             if not self.enabled:
                 raise RuntimeError("真机执行未启用；请用 --enable-robot 启动本地服务")
-            if not self.state["robot_enabled"]:
-                raise RuntimeError("机器人尚未使能；请先点击“机器人使能”")
+            if not self.state["arm_enabled"].get(info["arm"], False):
+                raise RuntimeError(f"{info['arm_label']}尚未使能；请先点击“{info['arm_label']}使能”")
             if not bridge["ok"]:
                 raise RuntimeError(f"机器人连接预检未通过：{bridge['message']}")
             if self.state["running"]:
@@ -481,7 +508,7 @@ class ActionController:
             phase = "queued_return" if reverse else "queued_cycle" if round_trip else "queued"
             message = (
                 f"{info['name']} 三帧倒序返回已进入队列" if reverse
-                else f"{info['name']} 正向三帧、等待 5 秒、倒序三帧已进入队列" if round_trip
+                else f"{info['name']} 正向三帧、等待 5 秒、倒序返程并归零已进入队列" if round_trip
                 else f"{info['name']} 三帧执行已进入队列"
             )
             self.state.update({
@@ -591,7 +618,7 @@ class ActionController:
             phase = "returning" if reverse else "cycling" if round_trip else "running"
             message = (
                 f"正在倒序返回：{name}" if reverse
-                else f"正在演示 {name}：正向三帧 → 等待 5 秒 → 倒序三帧" if round_trip
+                else f"正在演示 {name}：正向三帧 → 等待 5 秒 → 倒序三帧 → 上场反序 → 归零 → 放手" if round_trip
                 else f"正在执行三帧：{name}"
             )
             self.state.update({
@@ -620,7 +647,7 @@ class ActionController:
             phase = "returned" if reverse else "cycle_done" if round_trip else "done"
             message = (
                 f"{name} 三帧倒序返回完成" if reverse
-                else f"{name} 正向三帧与倒序三帧演示完成" if round_trip
+                else f"{name} 点穴返程、关节归零与手势恢复均已完成" if round_trip
                 else f"{name} 三帧执行完成"
             )
             ok = True
@@ -1059,7 +1086,10 @@ def make_handler(shared: SharedView, actions: ActionController):
                 return
             if self.path in {"/api/robot-enable", "/api/robot-disable"}:
                 try:
-                    payload = {"ok": True, "action": actions.set_robot_enabled(self.path.endswith("enable"))}
+                    request = self.read_json()
+                    payload = {"ok": True, "action": actions.set_robot_enabled(
+                        str(request.get("arm", "")), self.path.endswith("enable")
+                    )}
                     status = HTTPStatus.OK
                 except Exception as exc:  # noqa: BLE001
                     payload = {"ok": False, "error": str(exc), "action": actions.get_state()}
@@ -1095,15 +1125,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--robot-namespace", default="robot1")
     parser.add_argument("--robot-bridge-url", default="http://127.0.0.1:8766",
                         help="Task1 HTTP 动作桥地址，用于只读预检、MoveJ 与软件急停")
-    parser.add_argument("--speed-scale", type=float, default=0.15, help="真机速度缩放，限制为 (0, 0.4]")
+    parser.add_argument("--speed-scale", type=float, default=1.0, help="真机速度缩放，限制为 (0, 1]")
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    if not math.isfinite(args.speed_scale) or not 0 < args.speed_scale <= 0.4:
-        raise SystemExit("--speed-scale 必须在 (0, 0.4]")
+    if not math.isfinite(args.speed_scale) or not 0 < args.speed_scale <= 1.0:
+        raise SystemExit("--speed-scale 必须在 (0, 1]")
     shared = SharedView(args.snapshot_dir)
     actions = ActionController(shared, args.enable_robot, args.robot_namespace, args.speed_scale,
                                args.robot_bridge_url)

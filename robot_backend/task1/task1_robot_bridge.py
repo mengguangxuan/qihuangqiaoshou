@@ -82,7 +82,11 @@ class LBotBridge(Node):
         # empty hand at startup, so it is also the safe initial ramp origin.
         self.hand_positions = {arm: [255] * 6 for arm in ("left", "right")}
         self.hand_locks = {arm: threading.Lock() for arm in ("left", "right")}
-        self.hand_abort = threading.Event()
+        self.hand_abort = {arm: threading.Event() for arm in ("left", "right")}
+        # A new bridge does not change or guess the controller's physical
+        # enable state.  Values become known only after an explicit per-arm
+        # enable/disable request is sent through this bridge instance.
+        self.emergency_state = {arm: None for arm in ("left", "right")}
 
     def _joint(self, arm: str, message: JointState) -> None:
         with self.state_lock:
@@ -198,6 +202,7 @@ class LBotBridge(Node):
         with self.state_lock:
             now = time.time()
             return {"ok": True, "joints": dict(self.joints), "poses": dict(self.poses),
+                    "emergency": dict(self.emergency_state),
                     "joint_state_age_s": {arm: now - stamp if stamp else None
                                           for arm, stamp in self.updated_at.items()},
                     "updated_at": dict(self.updated_at)}
@@ -269,7 +274,7 @@ class LBotBridge(Node):
             steps = max(1, math.ceil(duration / HAND_COMMAND_PERIOD_SECONDS))
             period = duration / steps
             for step in range(1, steps + 1):
-                if self.hand_abort.is_set():
+                if self.hand_abort[hand].is_set():
                     raise BridgeFailure("emergency_stop", f"{hand} 手势被急停中断")
                 ratio = step / steps
                 current = [round(begin + (end - begin) * ratio)
@@ -278,27 +283,32 @@ class LBotBridge(Node):
                 message.data = current
                 self.hand_publishers[hand].publish(message)
                 self.hand_positions[hand] = current
-                if step < steps and self.hand_abort.wait(period):
+                if step < steps and self.hand_abort[hand].wait(period):
                     raise BridgeFailure("emergency_stop", f"{hand} 手势被急停中断")
         return {"ok": True, "speed_scale": speed_scale,
                 "duration_seconds": duration, "steps": steps}
 
-    def emergency(self, enabled: bool) -> dict[str, Any]:
+    def emergency(self, arm: Any, enabled: bool) -> dict[str, Any]:
+        targets = ("left", "right") if arm in (None, "") else (self._arm(arm),)
         if enabled:
-            self.hand_abort.set()
-        else:
-            self.hand_abort.clear()
+            for target in targets:
+                self.hand_abort[target].set()
         errors: list[str] = []
-        for arm in ("left", "right"):
+        for target in targets:
             try:
                 request = SetEmergency.Request()
                 request.emergency = bool(enabled)
-                self._call(self.service_clients[(arm, "emergency")], request)
+                self._call(self.service_clients[(target, "emergency")], request)
+                with self.state_lock:
+                    self.emergency_state[target] = bool(enabled)
+                if not enabled:
+                    self.hand_abort[target].clear()
             except Exception as exc:  # noqa: BLE001
-                errors.append(f"{arm}: {exc}")
+                errors.append(f"{target}: {exc}")
         if errors:
             raise RuntimeError("；".join(errors))
-        return {"ok": True, "emergency": bool(enabled)}
+        return {"ok": True, "arms": list(targets), "emergency": bool(enabled),
+                "emergency_state": dict(self.emergency_state)}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -343,7 +353,9 @@ class Handler(BaseHTTPRequestHandler):
                 "/inverse_kinematics": lambda: self.bridge.ik(body),
                 "/forward_kinematics": lambda: self.bridge.fk(body),
                 "/hand": lambda: self.bridge.hand(body),
-                "/emergency_stop": lambda: self.bridge.emergency(bool(body.get("emergency", True))),
+                "/emergency_stop": lambda: self.bridge.emergency(
+                    body.get("arm"), bool(body.get("emergency", True))
+                ),
             }
             if self.path not in routes:
                 self._send(404, {"error": "not found"})
