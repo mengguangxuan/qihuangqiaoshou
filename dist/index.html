@@ -441,7 +441,6 @@
     .trajectory-list li::before { content:""; position:absolute; left:-5px; top:12px; width:9px; height:9px; border-radius:50%; background:var(--cinnabar); }
     .trajectory-list li.missing::before { background:#a28f75; }
     .trajectory-list small { display:block; color:var(--ink-soft); word-break:break-all; }
-    .command-panel { margin-top:15px; padding:16px; border:1px solid rgba(23,51,47,.18); background:rgba(236,229,208,.52); }
     .command-head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
     .command-head strong { font:700 18px/1.2 "STKaiti","KaiTi",serif; }
     .command-head span { color:var(--ink-soft); font-size:12px; }
@@ -657,7 +656,7 @@
           <div class="robot-form"><select id="robotPointSelect"><option value="GV14">大椎 · GV14</option><option value="SI11-L">左天宗 · SI11-L</option><option value="SI11-R">右天宗 · SI11-R</option><option value="BL23-L">左肾俞 · BL23-L</option><option value="BL23-R">右肾俞 · BL23-R</option></select></div>
           <div class="robot-status" id="robotStatus">正在寻找本机视觉与机械臂服务……</div>
           <section class="connection-panel" aria-labelledby="connectionTitle">
-            <div class="connection-head"><strong id="connectionTitle">真机连接检查</strong><span>只读检查，不发送运动</span></div>
+            <div class="connection-head"><strong id="connectionTitle">真机连接检查</strong><span>连接检查不会触发运动</span></div>
             <div class="connection-grid"><div class="connection-item" id="checkLocal">本机穴位服务</div><div class="connection-item" id="checkVision">AprilTag 定位</div><div class="connection-item" id="checkBridge">8766 动作桥</div><div class="connection-item" id="checkArm">对应手臂关节与 Arm_Tip</div></div>
             <div class="robot-safety-actions"><button id="robotPreflight" type="button">检查机器人连接</button><button id="robotEnable" type="button" disabled>机器人使能</button><button id="robotDisable" type="button" disabled>机器人掉使能</button><button class="emergency" id="robotEmergency" type="button" disabled>紧急停止</button></div>
           </section>
@@ -671,13 +670,6 @@
             </div>
             <div class="teach-action-row"><button class="teach-execute" id="robotExecute" type="button" disabled>一键点穴：比 1 → 三帧 → 停 5 秒 → 恢复 → 返回</button></div>
             <div class="teach-detail" id="teachDetail" aria-live="polite">连接本机服务后显示关键帧结果。</div>
-          </section>
-          <section class="command-panel" aria-labelledby="commandTitle">
-            <div class="command-head"><strong id="commandTitle">执行信息与 ROS2 命令</strong><span id="commandState">等待三帧</span></div>
-            <p class="command-note">先检查连接并使能机器人。点击已完成三帧的穴位，会先比出“1”手势，正向播放 3 帧，停留 5 秒，恢复手势，再倒序返回。下方命令用于复制或核对数据。</p>
-            <pre class="command-code" id="executeCommand">选择并完成一个穴位的三帧示教后生成。</pre>
-            <div class="command-actions"><button id="copyExecuteCommand" type="button" disabled>复制往返演示命令</button></div>
-            <details class="ros2-details"><summary>查看三帧 ROS2 MoveJ 命令</summary><pre class="command-code" id="ros2Commands">尚未生成。</pre></details>
           </section>
         </div>
         <div class="robot-vision">
@@ -1114,17 +1106,6 @@
       ).join('')}</ul>`;
     }
 
-    function renderCommands(selected) {
-      const command = selected?.execute_command || '';
-      $('executeCommand').textContent = command || '选择并完成一个穴位的三帧示教后生成。';
-      $('copyExecuteCommand').disabled = !command;
-      const taughtCommands = (selected?.keyframes || []).filter(item => ['approach','target','retreat'].includes(item.name) && item.ros2_command);
-      $('ros2Commands').textContent = taughtCommands.length
-        ? taughtCommands.map((item, index) => `# ${index + 1} · ${item.label}\n${item.ros2_command}`).join('\n\n')
-        : '尚未生成。';
-      $('commandState').textContent = !selected ? '等待三帧' : !selected.ready ? `缺少 ${selected.missing?.length || 0} 帧` : '往返演示已就绪';
-    }
-
     function renderRobotStatus(status) {
       localRobotConnected = true;
       localRobotStatus = status;
@@ -1186,7 +1167,6 @@
         button.title = frame?.recorded ? `删除${frame.label}` : '该关键帧尚未记录';
       });
       renderTeachDetails(selected);
-      renderCommands(selected);
       $('coordinateList').innerHTML = (status.acupoints || []).map(item => `<div class="coordinate-item"><strong>${item.name} ${item.code}</strong>画面 (${item.x_px}, ${item.y_px})</div>`).join('') || '<div class="coordinate-item"><strong>实时坐标</strong>定位后显示</div>';
       if (!$('robotVideo').src) {
         $('robotVideo').src = `${localRobotBase}/stream.mjpg`;
@@ -1221,7 +1201,6 @@
         document.querySelectorAll('.teach-delete').forEach(button => { button.disabled = true; });
         document.querySelectorAll('.robot-point-button').forEach(button => { button.disabled = false; button.classList.remove('ready'); });
         $('teachDetail').textContent = '本机服务尚未连接，无法读取保存结果。';
-        renderCommands(null);
         $('robotStatus').textContent = '尚未发现机器人电脑上的本机服务。启动后，本页会自动接入视频、示教、连接检查与动作控制，无需打开另一张网页。';
       }
     }
@@ -1292,28 +1271,13 @@
       }
       submitRobotAction('/api/execute', `正在启动 ${selected.name} 往返演示……`, '未演示');
     });
-    $('copyExecuteCommand').onclick = async () => {
-      const text = $('executeCommand').textContent;
-      try {
-        await navigator.clipboard.writeText(text);
-        $('copyExecuteCommand').textContent = '已复制';
-      } catch (_) {
-        const range = document.createRange();
-        range.selectNodeContents($('executeCommand'));
-        const selection = window.getSelection();
-        selection.removeAllRanges();
-        selection.addRange(range);
-        $('copyExecuteCommand').textContent = '已选中，请复制';
-      }
-      window.setTimeout(() => { $('copyExecuteCommand').textContent = '复制往返演示命令'; }, 1600);
-    };
     $('robotPreflight').onclick = async () => {
       if (!localRobotConnected) {
         $('robotStatus').textContent = '本机服务尚未连接。请先在机器人电脑启动穴位服务，本页会自动重试。';
         return;
       }
       $('robotPreflight').disabled = true;
-      $('robotStatus').textContent = '正在只读检查机器人 IP、ROS2 服务、双臂关节状态与工具坐标系……';
+      $('robotStatus').textContent = '正在检查机器人 IP、ROS2 服务、双臂关节状态与工具坐标系……';
       try {
         const response = await fetch(`${localRobotBase}/api/preflight`, { cache:'no-store', signal:AbortSignal.timeout(7000) });
         const result = await response.json();
