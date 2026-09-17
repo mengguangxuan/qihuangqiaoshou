@@ -403,7 +403,7 @@
     .connection-item::before { content:""; width:8px; height:8px; flex:none; border-radius:50%; background:#a28f75; box-shadow:0 0 0 4px rgba(162,143,117,.12); }
     .connection-item.ok::before { background:#39835d; box-shadow:0 0 0 4px rgba(57,131,93,.12); }
     .connection-item.bad::before { background:var(--cinnabar); box-shadow:0 0 0 4px rgba(184,70,53,.12); }
-    .robot-safety-actions { margin-top:9px; display:grid; grid-template-columns:1fr auto; gap:8px; }
+    .robot-safety-actions { margin-top:9px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
     .robot-safety-actions button { min-height:41px; padding:0 13px; border:1px solid rgba(23,51,47,.18); border-radius:4px; color:var(--ink); background:#fffaf0; cursor:pointer; font-weight:800; }
     .robot-safety-actions .emergency { min-width:105px; color:#fff; border-color:#76291f; background:#76291f; }
     .robot-safety-actions button:disabled { opacity:.48; cursor:not-allowed; }
@@ -659,7 +659,7 @@
           <section class="connection-panel" aria-labelledby="connectionTitle">
             <div class="connection-head"><strong id="connectionTitle">真机连接检查</strong><span>只读检查，不发送运动</span></div>
             <div class="connection-grid"><div class="connection-item" id="checkLocal">本机穴位服务</div><div class="connection-item" id="checkVision">AprilTag 定位</div><div class="connection-item" id="checkBridge">8766 动作桥</div><div class="connection-item" id="checkArm">对应手臂关节与 Arm_Tip</div></div>
-            <div class="robot-safety-actions"><button id="robotPreflight" type="button">检查机器人连接</button><button class="emergency" id="robotEmergency" type="button" disabled>紧急停止</button></div>
+            <div class="robot-safety-actions"><button id="robotPreflight" type="button">检查机器人连接</button><button id="robotEnable" type="button" disabled>机器人使能</button><button id="robotDisable" type="button" disabled>机器人掉使能</button><button class="emergency" id="robotEmergency" type="button" disabled>紧急停止</button></div>
           </section>
           <section class="teach-panel" aria-labelledby="teachTitle">
             <div class="teach-head"><strong id="teachTitle">关键帧示教</strong><span id="teachArmLabel">当前所选穴位</span></div>
@@ -669,12 +669,12 @@
               <div class="teach-slot"><button class="teach-button" data-keyframe="target" type="button">记录姿态 2</button><button class="teach-delete" data-delete-keyframe="target" type="button" disabled aria-label="删除关键帧 2">删除</button></div>
               <div class="teach-slot"><button class="teach-button" data-keyframe="retreat" type="button">记录姿态 3</button><button class="teach-delete" data-delete-keyframe="retreat" type="button" disabled aria-label="删除关键帧 3">删除</button></div>
             </div>
-            <div class="teach-action-row"><button class="teach-execute" id="robotExecute" type="button" disabled>记录三帧后可演示</button></div>
+            <div class="teach-action-row"><button class="teach-execute" id="robotExecute" type="button" disabled>一键点穴：比 1 → 三帧 → 停 5 秒 → 恢复 → 返回</button></div>
             <div class="teach-detail" id="teachDetail" aria-live="polite">连接本机服务后显示关键帧结果。</div>
           </section>
           <section class="command-panel" aria-labelledby="commandTitle">
             <div class="command-head"><strong id="commandTitle">执行信息与 ROS2 命令</strong><span id="commandState">等待三帧</span></div>
-            <p class="command-note">点击已完成三帧的穴位，会正向播放 3 帧，等待 5 秒，再倒序播放 3 帧。下方命令用于复制或核对数据。</p>
+            <p class="command-note">先检查连接并使能机器人。点击已完成三帧的穴位，会先比出“1”手势，正向播放 3 帧，停留 5 秒，恢复手势，再倒序返回。下方命令用于复制或核对数据。</p>
             <pre class="command-code" id="executeCommand">选择并完成一个穴位的三帧示教后生成。</pre>
             <div class="command-actions"><button id="copyExecuteCommand" type="button" disabled>复制往返演示命令</button></div>
             <details class="ros2-details"><summary>查看三帧 ROS2 MoveJ 命令</summary><pre class="command-code" id="ros2Commands">尚未生成。</pre></details>
@@ -1136,14 +1136,15 @@
       const selectedArmLabel = selected?.arm_label || (selectedArm === 'right' ? '右臂' : '左臂');
       const selectedArmAge = health.joint_state_age_s?.[selectedArm];
       const armReady = bridge.ok && Number.isFinite(selectedArmAge) && selectedArmAge <= 1 && health.tool_frames?.[selectedArm] === 'Arm_Tip';
-      const ready = Boolean(status.tracking && selected?.ready && action.enabled && !action.running && bridge.ok);
+      const ready = Boolean(status.tracking && selected?.ready && action.enabled && action.robot_enabled && !action.running && bridge.ok);
       $('robotExecute').disabled = !ready;
       const gateText =
         !selected?.ready ? '请先记录该穴位的 3 个姿态' :
         !bridge.ok ? '先检查机器人连接' :
         !action.enabled ? '真机执行未启用' :
+        !action.robot_enabled ? '请先点击机器人使能' :
         !status.tracking ? '等待 AprilTag 定位稳定' : '';
-      $('robotExecute').textContent = action.running ? '往返演示进行中' : gateText || '播放：正向 3 帧 → 等待 5 秒 → 倒序 3 帧';
+      $('robotExecute').textContent = action.running ? '点穴动作进行中' : gateText || '一键点穴：比 1 → 三帧 → 停 5 秒 → 恢复 → 返回';
       const vision = status.tracking ? `视觉定位稳定（${status.fps} fps）` : '视觉尚未稳定';
       const taught = selected?.ready ? '该穴位的 3 帧已记录' : `待记录：${selected?.missing?.length ?? 3} 帧`;
       const bridgeText = bridge.checked ? bridge.message : '尚未进行机器人连接检查';
@@ -1160,6 +1161,8 @@
       setCheck('checkArm', bridge.checked ? (armReady ? `${selectedArmLabel}状态与 Arm_Tip 正常` : `${selectedArmLabel}状态或工具坐标异常`) : `${selectedArmLabel}状态待检查`, bridge.checked ? Boolean(armReady) : null);
       $('teachArmLabel').textContent = selected ? `${selected.name} · ${selectedArmLabel}` : '当前所选穴位';
       $('robotEmergency').disabled = !bridge.checked;
+      $('robotEnable').disabled = Boolean(action.running || !action.enabled || action.robot_enabled || !bridge.ok);
+      $('robotDisable').disabled = Boolean(action.running || !action.robot_enabled);
       document.querySelectorAll('.robot-point-button').forEach(button => {
         const flow = status.flows?.find(item => item.code === button.dataset.robotPoint);
         const active = button.dataset.robotPoint === $('robotPointSelect').value;
@@ -1202,6 +1205,8 @@
         $('robotExecute').disabled = true;
         $('robotExecute').textContent = '等待本机服务';
         $('robotPreflight').disabled = false;
+        $('robotEnable').disabled = true;
+        $('robotDisable').disabled = true;
         $('robotEmergency').disabled = true;
         ['checkLocal','checkVision','checkBridge','checkArm'].forEach(id => { $(id).classList.remove('ok','bad'); });
         $('checkLocal').textContent = '本机穴位服务未连接';
@@ -1319,6 +1324,29 @@
       }
       $('robotPreflight').disabled = false;
     };
+    async function setRobotEnabled(enabled) {
+      if (!localRobotConnected) {
+        $('robotStatus').textContent = '本机服务尚未连接，不能切换机器人使能。';
+        return;
+      }
+      $('robotEnable').disabled = true;
+      $('robotDisable').disabled = true;
+      $('robotStatus').textContent = enabled ? '正在使能机器人……' : '正在让机器人掉使能……';
+      try {
+        const response = await fetch(`${localRobotBase}${enabled ? '/api/robot-enable' : '/api/robot-disable'}`, {
+          method:'POST', headers:{'Content-Type':'application/json'}, body:'{}', signal:AbortSignal.timeout(7000)
+        });
+        const result = await response.json();
+        if (!response.ok || !result.ok) throw new Error(result.error || '切换使能失败');
+        localRobotStatus.action = result.action;
+        renderRobotStatus(localRobotStatus);
+      } catch (error) {
+        $('robotStatus').textContent = `没有切换使能：${error.message || '本机服务连接失败'}`;
+      }
+      window.setTimeout(refreshRobotBridge, 300);
+    }
+    $('robotEnable').onclick = () => setRobotEnabled(true);
+    $('robotDisable').onclick = () => setRobotEnabled(false);
     $('robotEmergency').onclick = async () => {
       $('robotEmergency').disabled = true;
       $('robotStatus').textContent = '正在发送软件急停；如有危险，请立即按下实体急停。';
