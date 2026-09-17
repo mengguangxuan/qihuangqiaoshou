@@ -459,6 +459,34 @@
     .coordinate-list { margin-top:12px; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:7px; }
     .coordinate-item { min-width:0; padding:9px; border:1px solid rgba(159,52,39,.18); background:rgba(255,253,248,.68); font-size:11px; color:var(--ink-soft); }
     .coordinate-item strong { display:block; overflow:hidden; color:var(--cinnabar-dark); font-size:13px; white-space:nowrap; text-overflow:ellipsis; }
+    .needle-console-grid { display:grid; grid-template-columns:minmax(270px,.42fr) minmax(560px,1.58fr); gap:18px; }
+    .needle-sidebar, .needle-editor { padding:20px; border:2px solid rgba(159,52,39,.38); background:rgba(255,252,242,.68); box-shadow:inset 0 0 0 5px rgba(255,253,248,.7),inset 0 0 0 6px rgba(159,52,39,.13); }
+    .needle-status { margin:12px 0; padding:12px; border-left:4px solid var(--gold); color:var(--ink-soft); background:rgba(224,210,180,.38); font-size:13px; line-height:1.65; }
+    .gesture-spec { margin-top:14px; display:grid; gap:8px; }
+    .gesture-spec article { padding:11px; border:1px solid rgba(23,51,47,.13); background:rgba(255,253,248,.76); }
+    .gesture-spec strong { display:block; color:var(--cinnabar-dark); font:800 17px/1.2 "STKaiti","KaiTi",serif; }
+    .gesture-spec code { display:block; margin-top:5px; color:var(--ink-soft); font:12px/1.45 Consolas,monospace; word-break:break-all; }
+    .needle-stages { display:grid; gap:10px; }
+    .needle-stage { border:1px solid rgba(159,52,39,.24); background:rgba(255,253,248,.72); }
+    .needle-stage-head { padding:11px 12px; display:flex; align-items:center; justify-content:space-between; gap:12px; background:rgba(224,210,180,.3); }
+    .needle-stage-title { display:flex; align-items:center; gap:9px; }
+    .needle-stage-number { width:27px; height:27px; display:grid; place-items:center; border-radius:50%; color:#fff; background:var(--cinnabar-dark); font-weight:900; }
+    .needle-stage-title strong { font:800 18px/1.2 "STKaiti","KaiTi",serif; }
+    .needle-stage-title small { color:var(--ink-soft); }
+    .needle-add-actions { display:flex; flex-wrap:wrap; gap:6px; }
+    .needle-add-actions button, .needle-step-actions button { min-height:32px; padding:0 9px; border:1px solid rgba(23,51,47,.17); color:var(--ink); background:#fffaf0; cursor:pointer; font-weight:800; }
+    .needle-add-actions button[data-needle-type="pinch"] { color:#fff; border-color:#315d4e; background:#315d4e; }
+    .needle-add-actions button[data-needle-type="release"] { color:#fff; border-color:#a56b35; background:#a56b35; }
+    .needle-add-actions button:disabled, .needle-step-actions button:disabled { opacity:.42; cursor:not-allowed; }
+    .needle-step-list { margin:0; padding:5px 12px 10px; list-style:none; }
+    .needle-step { min-height:50px; padding:8px 0; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:10px; border-bottom:1px dotted rgba(23,51,47,.15); }
+    .needle-step:last-child { border-bottom:0; }
+    .needle-step-main strong { display:block; color:var(--ink); font-size:13px; }
+    .needle-step-main small { display:block; margin-top:3px; color:var(--ink-soft); font-size:11px; word-break:break-all; }
+    .needle-step.gesture .needle-step-main strong { color:#315d4e; }
+    .needle-step-actions { display:flex; gap:4px; }
+    .needle-empty { padding:13px 12px; color:#8b7b68; font-size:12px; }
+    .needle-editor-note { margin:0 0 12px; color:var(--ink-soft); font-size:13px; line-height:1.65; }
 
     .sources { margin: 28px 0 45px; padding: 20px 22px; color: var(--ink-soft); font-size: 13px; }
     .sources strong { color: var(--ink); font-family: "STKaiti", "KaiTi", serif; font-size: 17px; }
@@ -474,6 +502,7 @@
     @media (max-width: 1240px) {
       .workspace { grid-template-columns: minmax(330px, 1fr) minmax(420px, 1.12fr); }
       .detail { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+      .needle-console-grid { grid-template-columns:1fr; }
       .detail .safety { grid-column: 1 / -1; }
       .concept-grid { grid-template-columns: repeat(2, 1fr); }
     }
@@ -678,6 +707,33 @@
         </div>
       </div>
     </section>
+    <section class="robot-console book-leaf" id="needleConsole" hidden>
+      <div class="robot-console-head">
+        <div><span class="eyebrow">无针点穴 · 左臂七阶段</span><h2>按阶段组合姿态与手部动作</h2></div>
+        <p>所有阶段固定使用左臂。每个阶段可按顺序加入任意数量的姿态关键帧，也可插入固定的“捏”和“放”；完成示教后可一键连续执行七个阶段。</p>
+      </div>
+      <div class="needle-console-grid">
+        <aside class="needle-sidebar">
+          <div class="teach-head"><strong>流程状态</strong><span>LEFT · 左臂</span></div>
+          <div class="needle-status" id="needleStatus">正在读取无针点穴流程……</div>
+          <div class="robot-safety-actions">
+            <button id="needlePreflight" type="button">检查机器人连接</button>
+            <button class="robot-arm-toggle" data-robot-arm="left" data-robot-enabled="true" type="button" disabled>左臂使能</button>
+            <button class="robot-arm-toggle" data-robot-arm="left" data-robot-enabled="false" type="button" disabled>左臂掉使能</button>
+            <button class="emergency" id="needleEmergency" type="button" disabled>双臂紧急停止</button>
+          </div>
+          <div class="gesture-spec" aria-label="固定左手动作">
+            <article><strong>捏</strong><code>0 71 0 255 255 255</code></article>
+            <article><strong>放</strong><code>255 71 255 255 255 255</code></article>
+          </div>
+          <div class="teach-action-row"><button class="teach-execute" id="needleExecute" type="button" disabled>一键执行七阶段演示</button></div>
+        </aside>
+        <div class="needle-editor">
+          <p class="needle-editor-note">“记录新姿态”会立即读取左臂当前 7 个关节角并追加到该阶段；“捏/放”直接追加固定手势。可用上下箭头调整阶段内部的执行顺序。</p>
+          <div class="needle-stages" id="needleStageList"><div class="needle-empty">连接本机服务后显示七阶段编辑器。</div></div>
+        </div>
+      </div>
+    </section>
     <footer class="sources book-leaf"><strong>资料依据</strong>　穴位名称与定位参照 <a href="https://www.who.int/publications/i/item/9290611057" target="_blank" rel="noreferrer">WHO 标准针灸命名</a>及标准定位资料；经络古图来自 <a href="https://commons.wikimedia.org/wiki/File:Anterior_and_posterior_whole-body_acu-moxa_charts,_Chinese_Wellcome_L0037879.jpg" target="_blank" rel="noreferrer">Wellcome Collection / Wikimedia Commons</a>，CC BY 4.0；中央正背面人体图采用项目提供的国家标准经穴部位挂图作科普示意，交互点位采用独立比例坐标固定在同一图层中。穴名释义面向公众，不作为诊断或治疗依据。</footer>
   </main>
 
@@ -701,19 +757,21 @@
 
     const modes = {
       guide: { index: '卷一 · 识穴', title: '从十个代表性穴位开始', description: '对照真人经络古图与交互模型，点击穴位即可了解名称、位置与文化渊源。', stage: '穴位文化导览', primary: '10', primaryLabel: '正反面代表穴位', secondary: '3 问', secondaryLabel: '名称、传统与位置', status: '穴位导览', action: '软头指示笔悬停指引', play: '循序寻穴' },
-      needle: { index: '卷二 · 点穴', title: '把找穴过程变成无针学习', description: '以钝头或磁吸教具依次指向目标，只做定位认知，不进行皮肤穿刺。', stage: '无针点穴学习', primary: '5 步', primaryLabel: '单面寻穴次序', secondary: '0 刺入', secondaryLabel: '只定位、不穿刺', status: '无针点穴', action: '钝头或磁吸教具指引', play: '依次点穴' },
+      needle: { index: '卷二 · 点穴', title: '左臂完成七阶段无针点穴演示', description: '按拿大针、刺大针、拿小针、刺小针、等待、取回大针和取回小针的顺序组织关键帧。', stage: '无针点穴七阶段', primary: '7 阶段', primaryLabel: '可编辑关键帧序列', secondary: '2 手势', secondaryLabel: '固定捏与放', status: '无针点穴', action: '左臂姿态与灵巧手组合演示', play: '浏览七阶段' },
       tap: { index: '卷三 · 舒展', title: '用肩背区域理解捶背范围', description: '左右肩背区域交替亮起，呈现舒缓动作的范围、方向与节奏。', stage: '双手捶背舒展', primary: '2 区', primaryLabel: '左右肩背范围', secondary: '低速', secondaryLabel: '预设柔和节奏', status: '肩背舒展', action: '双手低速交替轻触', play: '开始体验' },
       massage: { index: '卷四 · 循按', title: '看见按摩工具行走的路线', description: '以动态路径呈现起点、方向、当前进度与安全退出。', stage: '按摩轨迹体验', primary: '2 条', primaryLabel: '左右肩背短路径', secondary: '可视', secondaryLabel: '方向与进度同步', status: '循按轨迹', action: '按摩工具沿短路径移动', play: '开始体验' },
       cupping: { index: '卷五 · 罐法', title: '认识无火罐的安全放置过程', description: '圆形靶位对应训练罐位置，依次呈现抓取、放置、确认与取回。', stage: '无火罐法体验', primary: '3 位', primaryLabel: '训练罐放置位置', secondary: '闭环', secondaryLabel: '放置确认与取回', status: '无火罐法', action: '抓取、放置、确认、取回', play: '开始体验' }
     };
 
     const genericTargets = {
+      needle: { name: '七阶段无针点穴', code: '左臂 · 姿态与手势编排', description: '每个阶段可记录多个左臂姿态，并在任意位置加入固定“捏”或“放”动作。', source: '左臂当前 7 关节状态', meaning: '关键帧按页面中的顺序执行，阶段之间自动衔接。', tradition: '本栏目为假人器械动作演示，不进行真人针刺。' },
       tap: { name: '左右肩背区', code: '肩背区域 · 低速轻触', description: '半透明区域表示低速捶背范围，避开头部与脊柱中线。', source: '背部归一化区域', meaning: '区域不是单一穴位，而是一段连续舒展范围。', tradition: '这一部分以动作安全与身体区域认知为主，不对应特定治疗主张。' },
       massage: { name: '肩背短路径', code: '循按路径 · 左右双线', description: '两条预设路线呈现按摩工具的移动方向与进度，结束后回到安全位置。', source: '背部归一化路径', meaning: '路径把连续动作转化为可观察的起点、方向和终点。', tradition: '体验强调舒缓动作的节奏与边界，不替代康复或医疗操作。' },
       cupping: { name: '训练罐位置', code: '罐法位置 · 三处参照', description: '三个圆形目标对应无火训练罐的放置、确认与取回次序。', source: '背部预设放置位', meaning: '圆形标记对应训练罐口的落位范围。', tradition: '这里介绍罐具文化与工程抓放流程，不使用明火，也不宣称治疗效果。' }
     };
 
     const modeSteps = {
+      needle: ['拿大针', '刺大针', '拿小针', '刺小针', '等待 5 秒', '拿回大针', '拿回小针'],
       tap: ['左肩背区接近', '轻触确认', '左右交替动作', '停止并抬升', '返回安全位'],
       massage: ['工具抓持确认', '移动至安全高度', '左侧路径', '右侧路径', '关闭并归位'],
       cupping: ['识别训练罐', '调整罐口方向', '放置目标位', '视觉稳定确认', '取回并归位']
@@ -754,9 +812,11 @@
 
     function render() {
       const mode = modes[currentMode];
-      const backOnlyMode = ['tap','massage','cupping'].includes(currentMode);
+      const backOnlyMode = ['needle','tap','massage','cupping'].includes(currentMode);
       if (backOnlyMode) currentView = 'back';
       document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.mode === currentMode));
+      $('robotConsole').hidden = currentMode !== 'guide';
+      $('needleConsole').hidden = currentMode !== 'needle';
       document.querySelectorAll('.view-btn').forEach(btn => {
         const unavailable = backOnlyMode && btn.dataset.view === 'front';
         btn.disabled = unavailable;
@@ -783,7 +843,7 @@
         : '假人教学采用无针、无火、低速方式；内容用于文化科普，不替代专业医疗判断。';
       $('playButton').textContent = timer ? '暂停行程' : mode.play;
 
-      const isPointMode = currentMode === 'guide' || currentMode === 'needle';
+      const isPointMode = currentMode === 'guide';
       $('hotspotLayer').classList.toggle('visible', isPointMode);
       $('tapLayer').classList.toggle('visible', currentMode === 'tap');
       $('massageLayer').classList.toggle('visible', currentMode === 'massage');
@@ -827,7 +887,7 @@
     }
 
     function currentNarration(kind = 'overview') {
-      const isPointMode = currentMode === 'guide' || currentMode === 'needle';
+      const isPointMode = currentMode === 'guide';
       if (!isPointMode) {
         const target = genericTargets[currentMode];
         if (kind === 'meaning') return target.meaning;
@@ -1078,7 +1138,7 @@
 
     function togglePlayback() {
       if (timer) { stopPlayback(); render(); return; }
-      const count = currentMode === 'guide' || currentMode === 'needle' ? pointSets[currentView].length : modeSteps[currentMode].length;
+      const count = currentMode === 'guide' ? pointSets[currentView].length : modeSteps[currentMode].length;
       timer = setInterval(() => { currentIndex = (currentIndex + 1) % count; render(); }, 1450);
       render();
     }
@@ -1107,6 +1167,63 @@
         ? `<li><strong>${escapeHtml(labels[item.name])} · 已记录</strong>${item.recorded_at ? `${escapeHtml(item.recorded_at)}<br>` : ''}<span>关节角：${escapeHtml(formatJoints(item.joints))}</span></li>`
         : `<li><strong>${escapeHtml(labels[item.name])} · 待记录</strong><span>点击上方按钮写入当前姿态</span></li>`
       ).join('')}</ul>`;
+    }
+
+    function renderNeedleStatus(status) {
+      const flow = status.needle_flow;
+      const action = status.action || {};
+      const bridge = action.bridge || {};
+      const armEnabled = action.arm_enabled || { left:Boolean(action.robot_enabled), right:Boolean(action.robot_enabled) };
+      if (!flow) {
+        $('needleStatus').textContent = '无针点穴流程数据尚未加载。';
+        $('needleExecute').disabled = true;
+        return;
+      }
+      const gateText =
+        !flow.ready ? `尚未完成：${flow.missing?.[0] || '请录入关键帧'}` :
+        !bridge.ok ? '请先检查机器人连接' :
+        !action.enabled ? '真机执行未启用' :
+        !armEnabled.left ? '请先点击左臂使能' :
+        !status.tracking ? '等待 AprilTag 定位稳定' : '';
+      const ready = Boolean(flow.ready && bridge.ok && action.enabled && armEnabled.left && status.tracking && !action.running);
+      $('needleExecute').disabled = !ready;
+      $('needleExecute').textContent = action.running ? '动作或示教进行中' : gateText || '一键执行七阶段演示';
+      const readinessText = flow.ready ? '七阶段已完成示教' : `还需完善 ${flow.missing?.length || 0} 项`;
+      $('needleStatus').textContent = `${readinessText}；共 ${flow.total_steps} 个步骤、${flow.recorded_poses} 个姿态；速度 ${flow.speed}，加速度 ${flow.acceleration}；左臂${armEnabled.left ? '已使能' : '已掉使能'}；${action.message || ''}`;
+      $('needlePreflight').disabled = Boolean(action.running);
+      $('needleEmergency').disabled = !bridge.checked;
+      $('needleStageList').innerHTML = flow.stages.map(stage => {
+        const waitBadge = stage.wait_seconds ? `<small>固定等待 ${escapeHtml(stage.wait_seconds)} 秒</small>` : `<small>${stage.steps.length} 个步骤</small>`;
+        const rows = stage.steps.map((step, index) => {
+          const isPose = step.type === 'pose';
+          const detail = isPose
+            ? (step.recorded ? `已记录 ${escapeHtml(step.recorded_at || '')} · ${escapeHtml(formatJoints(step.joints))}` : '尚未记录关节角')
+            : `固定值：${escapeHtml((step.positions || []).join(' '))}`;
+          return `<li class="needle-step ${isPose ? 'pose' : 'gesture'}">
+            <div class="needle-step-main"><strong>${escapeHtml(step.label)}</strong><small>${detail}</small></div>
+            <div class="needle-step-actions">
+              ${isPose ? `<button type="button" data-needle-action="record" data-stage="${escapeHtml(stage.id)}" data-step="${escapeHtml(step.id)}">覆盖</button>` : ''}
+              <button type="button" data-needle-action="move" data-direction="up" data-stage="${escapeHtml(stage.id)}" data-step="${escapeHtml(step.id)}" ${index === 0 ? 'disabled' : ''} aria-label="上移">↑</button>
+              <button type="button" data-needle-action="move" data-direction="down" data-stage="${escapeHtml(stage.id)}" data-step="${escapeHtml(step.id)}" ${index === stage.steps.length - 1 ? 'disabled' : ''} aria-label="下移">↓</button>
+              <button type="button" data-needle-action="delete" data-stage="${escapeHtml(stage.id)}" data-step="${escapeHtml(step.id)}">删除</button>
+            </div>
+          </li>`;
+        }).join('');
+        return `<section class="needle-stage" data-stage-id="${escapeHtml(stage.id)}">
+          <div class="needle-stage-head">
+            <div class="needle-stage-title"><span class="needle-stage-number">${stage.number}</span><div><strong>${escapeHtml(stage.label)}</strong>${waitBadge}</div></div>
+            <div class="needle-add-actions">
+              <button type="button" data-needle-action="add" data-needle-type="pose" data-stage="${escapeHtml(stage.id)}">记录新姿态</button>
+              <button type="button" data-needle-action="add" data-needle-type="pinch" data-stage="${escapeHtml(stage.id)}">+ 捏</button>
+              <button type="button" data-needle-action="add" data-needle-type="release" data-stage="${escapeHtml(stage.id)}">+ 放</button>
+            </div>
+          </div>
+          ${rows ? `<ol class="needle-step-list">${rows}</ol>` : `<div class="needle-empty">${stage.wait_seconds ? '此阶段会自动等待 5 秒，也可在等待前加入姿态或手势。' : '尚无步骤，请记录姿态或加入手势。'}</div>`}
+        </section>`;
+      }).join('');
+      $('needleStageList').querySelectorAll('button').forEach(button => {
+        if (action.running) button.disabled = true;
+      });
     }
 
     function renderRobotStatus(status) {
@@ -1186,6 +1303,7 @@
         $('robotVideo').src = `${localRobotBase}/stream.mjpg`;
         $('streamPlaceholder').style.display = 'none';
       }
+      renderNeedleStatus(status);
     }
 
     async function refreshRobotBridge() {
@@ -1215,12 +1333,17 @@
         document.querySelectorAll('.robot-point-button').forEach(button => { button.disabled = false; button.classList.remove('ready'); });
         $('teachDetail').textContent = '本机服务尚未连接，无法读取保存结果。';
         $('robotStatus').textContent = '尚未发现机器人电脑上的本机服务。启动后，本页会自动接入视频、示教、连接检查与动作控制，无需打开另一张网页。';
+        $('needleExecute').disabled = true;
+        $('needlePreflight').disabled = false;
+        $('needleEmergency').disabled = true;
+        $('needleStatus').textContent = '尚未发现本机服务，无法读取或执行无针点穴七阶段流程。';
+        $('needleStageList').innerHTML = '<div class="needle-empty">连接本机服务后显示七阶段编辑器。</div>';
       }
     }
 
     document.querySelectorAll('.mode-btn').forEach(btn => btn.onclick = () => {
       stopPlayback(); window.speechSynthesis?.cancel(); currentMode = btn.dataset.mode; currentIndex = 0;
-      if (['tap','massage','cupping'].includes(currentMode)) currentView = 'back';
+      if (['needle','tap','massage','cupping'].includes(currentMode)) currentView = 'back';
       render();
     });
     document.querySelectorAll('.view-btn').forEach(btn => btn.onclick = () => {
@@ -1301,6 +1424,23 @@
       }
       $('robotPreflight').disabled = false;
     };
+    $('needlePreflight').onclick = async () => {
+      if (!localRobotConnected) {
+        $('needleStatus').textContent = '本机服务尚未连接。';
+        return;
+      }
+      $('needlePreflight').disabled = true;
+      $('needleStatus').textContent = '正在检查左臂、灵巧手、ROS2 服务与动作桥……';
+      try {
+        const response = await fetch(`${localRobotBase}/api/preflight`, { cache:'no-store', signal:AbortSignal.timeout(7000) });
+        const result = await response.json();
+        localRobotStatus.action = { ...(localRobotStatus.action || {}), bridge: result };
+        renderRobotStatus(localRobotStatus);
+      } catch (_) {
+        $('needleStatus').textContent = '连接检查失败：请确认左臂驱动、灵巧手与 8766 动作桥已启动。';
+      }
+      $('needlePreflight').disabled = false;
+    };
     async function setRobotEnabled(arm, enabled) {
       if (!localRobotConnected) {
         $('robotStatus').textContent = '本机服务尚未连接，不能切换机器人使能。';
@@ -1308,7 +1448,9 @@
       }
       document.querySelectorAll('.robot-arm-toggle').forEach(button => { button.disabled = true; });
       const armLabel = arm === 'right' ? '右臂' : '左臂';
-      $('robotStatus').textContent = enabled ? `正在使能${armLabel}……` : `正在让${armLabel}掉使能……`;
+      const pending = enabled ? `正在使能${armLabel}……` : `正在让${armLabel}掉使能……`;
+      $('robotStatus').textContent = pending;
+      $('needleStatus').textContent = pending;
       try {
         const response = await fetch(`${localRobotBase}${enabled ? '/api/robot-enable' : '/api/robot-disable'}`, {
           method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ arm }), signal:AbortSignal.timeout(7000)
@@ -1318,25 +1460,29 @@
         localRobotStatus.action = result.action;
         renderRobotStatus(localRobotStatus);
       } catch (error) {
-        $('robotStatus').textContent = `没有切换使能：${error.message || '本机服务连接失败'}`;
+        const message = `没有切换使能：${error.message || '本机服务连接失败'}`;
+        $('robotStatus').textContent = message;
+        $('needleStatus').textContent = message;
       }
       window.setTimeout(refreshRobotBridge, 300);
     }
     document.querySelectorAll('.robot-arm-toggle').forEach(button => {
       button.onclick = () => setRobotEnabled(button.dataset.robotArm, button.dataset.robotEnabled === 'true');
     });
-    $('robotEmergency').onclick = async () => {
-      $('robotEmergency').disabled = true;
-      $('robotStatus').textContent = '正在发送软件急停；如有危险，请立即按下实体急停。';
+    async function sendEmergency(button, statusElement) {
+      button.disabled = true;
+      statusElement.textContent = '正在发送软件急停；如有危险，请立即按下实体急停。';
       try {
         const response = await fetch(`${localRobotBase}/api/emergency-stop`, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}', signal:AbortSignal.timeout(6000) });
         const result = await response.json();
-        $('robotStatus').textContent = result.ok ? result.action.message : `软件急停失败：${result.error}；请立即使用实体急停。`;
+        statusElement.textContent = result.ok ? result.action.message : `软件急停失败：${result.error}；请立即使用实体急停。`;
       } catch (_) {
-        $('robotStatus').textContent = '无法连接软件急停接口，请立即使用实体急停。';
+        statusElement.textContent = '无法连接软件急停接口，请立即使用实体急停。';
       }
       window.setTimeout(refreshRobotBridge, 300);
-    };
+    }
+    $('robotEmergency').onclick = () => sendEmergency($('robotEmergency'), $('robotStatus'));
+    $('needleEmergency').onclick = () => sendEmergency($('needleEmergency'), $('needleStatus'));
     async function submitRobotAction(path, pendingText, failurePrefix) {
       if (!localRobotConnected) {
         $('robotStatus').textContent = '本机服务尚未连接，没有提交任何动作。';
@@ -1354,6 +1500,49 @@
       window.setTimeout(refreshRobotBridge, 400);
     }
     $('robotExecute').onclick = () => submitRobotAction('/api/execute', '正在提交正向三帧、等待 5 秒、倒序三帧的往返演示……', '未演示');
+    async function submitNeedleRequest(path, body, pendingText) {
+      if (!localRobotConnected) {
+        $('needleStatus').textContent = '本机服务尚未连接，没有提交任何操作。';
+        return;
+      }
+      $('needleStatus').textContent = pendingText;
+      $('needleStageList').querySelectorAll('button').forEach(button => { button.disabled = true; });
+      $('needleExecute').disabled = true;
+      try {
+        const response = await fetch(`${localRobotBase}${path}`, {
+          method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
+          signal:AbortSignal.timeout(path.endsWith('/execute') ? 5000 : 7000)
+        });
+        const result = await response.json();
+        if (!response.ok || !result.ok) throw new Error(result.error || '操作失败');
+        $('needleStatus').textContent = result.action.message;
+      } catch (error) {
+        $('needleStatus').textContent = `操作未完成：${error.message || '本机服务连接失败'}`;
+      }
+      window.setTimeout(refreshRobotBridge, 250);
+    }
+    $('needleStageList').addEventListener('click', event => {
+      const button = event.target.closest('button[data-needle-action]');
+      if (!button || button.disabled) return;
+      const action = button.dataset.needleAction;
+      const stage = button.dataset.stage;
+      const step = button.dataset.step;
+      if (action === 'add') {
+        const type = button.dataset.needleType;
+        const label = type === 'pose' ? '正在读取左臂当前关节角并追加姿态……' : `正在追加固定“${type === 'pinch' ? '捏' : '放'}”手势……`;
+        submitNeedleRequest('/api/needle/add-step', { stage, type }, label);
+      } else if (action === 'record') {
+        submitNeedleRequest('/api/needle/record-step', { stage, step }, '正在覆盖记录左臂当前关节角……');
+      } else if (action === 'move') {
+        submitNeedleRequest('/api/needle/move-step', { stage, step, direction:button.dataset.direction }, '正在调整阶段内部执行顺序……');
+      } else if (action === 'delete') {
+        if (!window.confirm('确认删除这个无针点穴步骤？')) return;
+        submitNeedleRequest('/api/needle/delete-step', { stage, step }, '正在删除步骤……');
+      }
+    });
+    $('needleExecute').onclick = () => submitNeedleRequest(
+      '/api/needle/execute', {}, '正在提交无针点穴七阶段演示……'
+    );
     document.querySelectorAll('.teach-delete').forEach(button => button.onclick = async () => {
       if (!localRobotConnected) {
         $('robotStatus').textContent = '本机示教服务尚未连接，没有删除关键帧。';

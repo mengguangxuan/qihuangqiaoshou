@@ -37,7 +37,13 @@ WEB_ROOT = PROJECT_DIR.parent / "dist"
 CONSOLE_PATH = WEB_ROOT / "index.html"
 FLOW_DIR = PROJECT_DIR / "acupoint_flows"
 FLOW_RUNNER = PROJECT_DIR / "run_acupoint_flow.py"
+NEEDLE_FLOW_PATH = PROJECT_DIR / "needle_flow.json"
+NEEDLE_RUNNER = PROJECT_DIR / "run_needle_flow.py"
 EVENT_LOG_PATH = PROJECT_DIR / "data" / "acupoint_events.jsonl"
+NEEDLE_GESTURES = {
+    "pinch": {"label": "捏", "positions": [0, 71, 0, 255, 255, 255]},
+    "release": {"label": "放", "positions": [255, 71, 255, 255, 255, 255]},
+}
 
 # Canonical coordinates describe the physical tag layout on the mannequin.
 # The top/bottom four tags form the main quadrilateral. ID 2 is the neck tag
@@ -477,6 +483,254 @@ class ActionController:
 
     def catalog(self) -> list[dict]:
         return [self.flow_info(item[2]) for item in ACUPOINTS]
+
+    @staticmethod
+    def _load_needle_flow() -> dict:
+        flow = json.loads(NEEDLE_FLOW_PATH.read_text(encoding="utf-8"))
+        if flow.get("schema") != "fivefinger.needle-flow/v1" or flow.get("arm") != "left":
+            raise ValueError("无针点穴流程格式无效，且必须固定使用左臂")
+        if len(flow.get("stages") or []) != 7:
+            raise ValueError("无针点穴流程必须包含固定的七个阶段")
+        return flow
+
+    @staticmethod
+    def _write_needle_flow(flow: dict) -> None:
+        temporary = NEEDLE_FLOW_PATH.with_suffix(NEEDLE_FLOW_PATH.suffix + ".tmp")
+        temporary.write_text(json.dumps(flow, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        temporary.replace(NEEDLE_FLOW_PATH)
+
+    @staticmethod
+    def _needle_stage(flow: dict, stage_id: str) -> dict:
+        stage = next((item for item in flow["stages"] if item.get("id") == stage_id), None)
+        if stage is None:
+            raise ValueError(f"未知无针点穴阶段：{stage_id}")
+        return stage
+
+    @staticmethod
+    def _normalize_needle_labels(flow: dict) -> None:
+        for stage in flow["stages"]:
+            pose_number = 0
+            for step in stage.get("steps") or []:
+                if step.get("type") == "pose":
+                    pose_number += 1
+                    step["label"] = f"{stage['label']} · 姿态 {pose_number}"
+
+    def needle_flow_info(self) -> dict:
+        flow = self._load_needle_flow()
+        missing: list[str] = []
+        total_steps = 0
+        recorded_poses = 0
+        stages = []
+        for number, stage in enumerate(flow["stages"], 1):
+            steps = []
+            raw_steps = stage.get("steps") or []
+            if stage.get("id") != "wait_5s" and not raw_steps:
+                missing.append(f"{stage['label']}没有步骤")
+            for index, raw in enumerate(raw_steps, 1):
+                step_type = raw.get("type")
+                if step_type not in {"pose", "pinch", "release"}:
+                    missing.append(f"{stage['label']}步骤{index}类型无效")
+                joints = raw.get("joints")
+                recorded = step_type != "pose" or (isinstance(joints, list) and len(joints) == 7)
+                if step_type == "pose" and not recorded:
+                    missing.append(f"{stage['label']}姿态{index}未记录")
+                if step_type == "pose" and recorded:
+                    recorded_poses += 1
+                gesture = NEEDLE_GESTURES.get(step_type)
+                steps.append({
+                    "id": str(raw.get("id", "")),
+                    "type": step_type,
+                    "label": raw.get("label") or (gesture or {}).get("label") or f"步骤 {index}",
+                    "recorded": recorded,
+                    "joints": joints,
+                    "recorded_at": raw.get("recorded_at"),
+                    "positions": (gesture or {}).get("positions"),
+                })
+            total_steps += len(steps)
+            stages.append({
+                "number": number,
+                "id": stage["id"],
+                "label": stage["label"],
+                "wait_seconds": float(stage.get("wait_seconds", 0.0)),
+                "steps": steps,
+            })
+        return {
+            "name": flow.get("name", "无针点穴七阶段演示"),
+            "arm": "left",
+            "arm_label": "左臂",
+            "speed": float(flow.get("speed", 1.5)) * self.speed_scale,
+            "acceleration": float(flow.get("acceleration", 1.0)) * self.speed_scale,
+            "gestures": NEEDLE_GESTURES,
+            "stages": stages,
+            "total_steps": total_steps,
+            "recorded_poses": recorded_poses,
+            "ready": not missing,
+            "missing": missing,
+            "updated_at": NEEDLE_FLOW_PATH.stat().st_mtime,
+        }
+
+    def _capture_left_joints(self) -> list[float]:
+        status, state = self._bridge_request("GET", "/state", timeout=3.0)
+        if status != HTTPStatus.OK or not state.get("ok"):
+            raise RuntimeError(state.get("error") or f"动作桥返回 {status}")
+        age = (state.get("joint_state_age_s") or {}).get("left")
+        joints = (state.get("joints") or {}).get("left")
+        if age is None or float(age) > 0.5:
+            raise RuntimeError(f"左臂 joint_states 已过期：{age}")
+        if not isinstance(joints, list) or len(joints) < 7:
+            raise RuntimeError("动作桥没有返回完整的左臂 7 关节状态")
+        values = [round(float(item), 6) for item in joints[:7]]
+        if not all(math.isfinite(item) for item in values):
+            raise RuntimeError("左臂关节状态包含无效数值")
+        return values
+
+    def needle_add_step(self, stage_id: str, step_type: str) -> dict:
+        if step_type not in {"pose", "pinch", "release"}:
+            raise ValueError("步骤类型只能是 pose、pinch 或 release")
+        with self.lock:
+            if self.state["running"]:
+                raise RuntimeError("当前仍有动作或示教任务在运行")
+            self.state.update({"running": True, "phase": "needle_editing",
+                               "message": "正在记录左臂姿态" if step_type == "pose" else "正在添加固定手势",
+                               "updated_at": time.time()})
+        try:
+            joints = self._capture_left_joints() if step_type == "pose" else None
+            flow = self._load_needle_flow()
+            stage = self._needle_stage(flow, stage_id)
+            step = {"id": f"{stage_id}-{time.time_ns()}", "type": step_type}
+            if step_type == "pose":
+                step.update({"joints": joints, "hold": 0.0,
+                             "recorded_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                             "recorded_from": "http://127.0.0.1:8766/state"})
+            stage.setdefault("steps", []).append(step)
+            self._normalize_needle_labels(flow)
+            self._write_needle_flow(flow)
+            label = "左臂姿态" if step_type == "pose" else f"左手{NEEDLE_GESTURES[step_type]['label']}"
+            message = f"已在“{stage['label']}”末尾添加{label}"
+            ok = True
+        except Exception as exc:
+            message, ok = f"添加无针点穴步骤失败：{exc}", False
+        with self.lock:
+            self.state.update({"running": False, "phase": "needle_edited" if ok else "error",
+                               "message": message, "updated_at": time.time()})
+        self._record_event("needle_step_add", ok, message, output=stage_id)
+        if not ok:
+            raise RuntimeError(message)
+        return self.get_state()
+
+    def needle_record_step(self, stage_id: str, step_id: str) -> dict:
+        with self.lock:
+            if self.state["running"]:
+                raise RuntimeError("当前仍有动作或示教任务在运行")
+            self.state.update({"running": True, "phase": "needle_teaching",
+                               "message": "正在覆盖记录左臂当前姿态", "updated_at": time.time()})
+        try:
+            joints = self._capture_left_joints()
+            flow = self._load_needle_flow()
+            stage = self._needle_stage(flow, stage_id)
+            step = next((item for item in stage.get("steps") or [] if item.get("id") == step_id), None)
+            if step is None or step.get("type") != "pose":
+                raise ValueError("找不到要覆盖的姿态关键帧")
+            step.update({"joints": joints, "recorded_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                         "recorded_from": "http://127.0.0.1:8766/state"})
+            self._write_needle_flow(flow)
+            message, ok = f"已覆盖记录“{step.get('label', '左臂姿态')}”", True
+        except Exception as exc:
+            message, ok = f"覆盖记录失败：{exc}", False
+        with self.lock:
+            self.state.update({"running": False, "phase": "needle_taught" if ok else "error",
+                               "message": message, "updated_at": time.time()})
+        self._record_event("needle_step_record", ok, message, output=stage_id)
+        if not ok:
+            raise RuntimeError(message)
+        return self.get_state()
+
+    def needle_delete_step(self, stage_id: str, step_id: str) -> dict:
+        with self.lock:
+            if self.state["running"]:
+                raise RuntimeError("当前仍有动作或示教任务在运行")
+            flow = self._load_needle_flow()
+            stage = self._needle_stage(flow, stage_id)
+            steps = stage.get("steps") or []
+            index = next((i for i, item in enumerate(steps) if item.get("id") == step_id), None)
+            if index is None:
+                raise ValueError("找不到要删除的关键帧")
+            removed = steps.pop(index)
+            self._normalize_needle_labels(flow)
+            self._write_needle_flow(flow)
+            message = f"已从“{stage['label']}”删除{removed.get('label', '步骤')}"
+            self.state.update({"phase": "needle_edited", "message": message, "updated_at": time.time()})
+        self._record_event("needle_step_delete", True, message, output=stage_id)
+        return self.get_state()
+
+    def needle_move_step(self, stage_id: str, step_id: str, direction: str) -> dict:
+        if direction not in {"up", "down"}:
+            raise ValueError("direction 必须是 up 或 down")
+        with self.lock:
+            if self.state["running"]:
+                raise RuntimeError("当前仍有动作或示教任务在运行")
+            flow = self._load_needle_flow()
+            stage = self._needle_stage(flow, stage_id)
+            steps = stage.get("steps") or []
+            index = next((i for i, item in enumerate(steps) if item.get("id") == step_id), None)
+            if index is None:
+                raise ValueError("找不到要移动的关键帧")
+            target = index - 1 if direction == "up" else index + 1
+            if not 0 <= target < len(steps):
+                raise RuntimeError("该步骤已经位于阶段边界")
+            steps[index], steps[target] = steps[target], steps[index]
+            self._normalize_needle_labels(flow)
+            self._write_needle_flow(flow)
+            message = f"已调整“{stage['label']}”内部步骤顺序"
+            self.state.update({"phase": "needle_edited", "message": message, "updated_at": time.time()})
+        return self.get_state()
+
+    def request_needle(self) -> dict:
+        info = self.needle_flow_info()
+        bridge = self.preflight()
+        with self.shared.lock:
+            tracking = bool(self.shared.status.get("tracking"))
+        with self.lock:
+            if not self.enabled:
+                raise RuntimeError("真机执行未启用；请用 --enable-robot 启动本地服务")
+            if not self.state["arm_enabled"].get("left", False):
+                raise RuntimeError("左臂尚未使能；请先点击“左臂使能”")
+            if not bridge["ok"]:
+                raise RuntimeError(f"机器人连接预检未通过：{bridge['message']}")
+            if self.state["running"]:
+                raise RuntimeError("上一组动作仍在执行")
+            if not tracking:
+                raise RuntimeError("AprilTag 定位尚未稳定，禁止执行")
+            if not info["ready"]:
+                raise RuntimeError("无针点穴七阶段尚未完成示教：" + "；".join(info["missing"][:3]))
+            message = "无针点穴七阶段演示已进入队列"
+            self.state.update({"running": True, "point": "NEEDLE", "phase": "needle_queued",
+                               "message": message, "updated_at": time.time()})
+        threading.Thread(target=self._run_needle, daemon=True).start()
+        self._record_event("needle_execute", True, message, point="NEEDLE")
+        return self.get_state()
+
+    def _run_needle(self) -> None:
+        with self.lock:
+            self.state.update({"phase": "needle_running", "message": "正在执行无针点穴七阶段演示",
+                               "updated_at": time.time()})
+        command = [
+            sys.executable, str(NEEDLE_RUNNER), "--execute",
+            "--bridge-url", self.bridge_url,
+            "--speed-scale", str(self.speed_scale),
+        ]
+        try:
+            result = subprocess.run(command, capture_output=True, text=True, timeout=600, check=False)
+            output = (result.stdout if result.returncode == 0 else result.stderr).strip()
+            if result.returncode != 0:
+                raise RuntimeError(output or f"无针点穴流程退出码 {result.returncode}")
+            phase, message, ok = "needle_done", "无针点穴七阶段演示完成", True
+        except Exception as exc:  # noqa: BLE001
+            output = str(exc)
+            phase, message, ok = "error", f"无针点穴演示失败：{exc}", False
+        with self.lock:
+            self.state.update({"running": False, "phase": phase, "message": message, "updated_at": time.time()})
+        self._record_event("needle_done", ok, message, point="NEEDLE", output=output)
 
     def get_state(self) -> dict:
         with self.lock:
@@ -981,6 +1235,7 @@ def make_handler(shared: SharedView, actions: ActionController):
                 status = shared.get_status()
                 status["action"] = actions.get_state()
                 status["flows"] = actions.catalog()
+                status["needle_flow"] = actions.needle_flow_info()
                 payload = json.dumps(status, ensure_ascii=False).encode("utf-8")
                 self.send_bytes(payload, "application/json; charset=utf-8")
                 return
@@ -1057,6 +1312,65 @@ def make_handler(shared: SharedView, actions: ActionController):
                 try:
                     request = self.read_json()
                     payload = {"ok": True, "action": actions.request(str(request.get("point", "")))}
+                    status = HTTPStatus.ACCEPTED
+                except Exception as exc:  # noqa: BLE001
+                    payload = {"ok": False, "error": str(exc), "action": actions.get_state()}
+                    status = HTTPStatus.CONFLICT
+                self.send_bytes(json.dumps(payload, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8", status)
+                return
+            if self.path == "/api/needle/add-step":
+                try:
+                    request = self.read_json()
+                    payload = {"ok": True, "action": actions.needle_add_step(
+                        str(request.get("stage", "")), str(request.get("type", ""))
+                    )}
+                    status = HTTPStatus.OK
+                except Exception as exc:  # noqa: BLE001
+                    payload = {"ok": False, "error": str(exc), "action": actions.get_state()}
+                    status = HTTPStatus.CONFLICT
+                self.send_bytes(json.dumps(payload, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8", status)
+                return
+            if self.path == "/api/needle/record-step":
+                try:
+                    request = self.read_json()
+                    payload = {"ok": True, "action": actions.needle_record_step(
+                        str(request.get("stage", "")), str(request.get("step", ""))
+                    )}
+                    status = HTTPStatus.OK
+                except Exception as exc:  # noqa: BLE001
+                    payload = {"ok": False, "error": str(exc), "action": actions.get_state()}
+                    status = HTTPStatus.CONFLICT
+                self.send_bytes(json.dumps(payload, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8", status)
+                return
+            if self.path == "/api/needle/delete-step":
+                try:
+                    request = self.read_json()
+                    payload = {"ok": True, "action": actions.needle_delete_step(
+                        str(request.get("stage", "")), str(request.get("step", ""))
+                    )}
+                    status = HTTPStatus.OK
+                except Exception as exc:  # noqa: BLE001
+                    payload = {"ok": False, "error": str(exc), "action": actions.get_state()}
+                    status = HTTPStatus.CONFLICT
+                self.send_bytes(json.dumps(payload, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8", status)
+                return
+            if self.path == "/api/needle/move-step":
+                try:
+                    request = self.read_json()
+                    payload = {"ok": True, "action": actions.needle_move_step(
+                        str(request.get("stage", "")), str(request.get("step", "")),
+                        str(request.get("direction", ""))
+                    )}
+                    status = HTTPStatus.OK
+                except Exception as exc:  # noqa: BLE001
+                    payload = {"ok": False, "error": str(exc), "action": actions.get_state()}
+                    status = HTTPStatus.CONFLICT
+                self.send_bytes(json.dumps(payload, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8", status)
+                return
+            if self.path == "/api/needle/execute":
+                try:
+                    self.read_json()
+                    payload = {"ok": True, "action": actions.request_needle()}
                     status = HTTPStatus.ACCEPTED
                 except Exception as exc:  # noqa: BLE001
                     payload = {"ok": False, "error": str(exc), "action": actions.get_state()}

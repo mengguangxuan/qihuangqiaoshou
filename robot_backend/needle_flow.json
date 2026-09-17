@@ -1,0 +1,69 @@
+{
+  "schema": "fivefinger.needle-flow/v1",
+  "name": "无针点穴七阶段演示",
+  "arm": "left",
+  "speed": 1.5,
+  "acceleration": 1.0,
+  "gestures": {
+    "pinch": {
+      "label": "捏",
+      "positions": [
+        0,
+        71,
+        0,
+        255,
+        255,
+        255
+      ]
+    },
+    "release": {
+      "label": "放",
+      "positions": [
+        255,
+        71,
+        255,
+        255,
+        255,
+        255
+      ]
+    }
+  },
+  "stages": [
+    {
+      "id": "take_large",
+      "label": "拿大针",
+      "steps": []
+    },
+    {
+      "id": "insert_large",
+      "label": "刺大针",
+      "steps": []
+    },
+    {
+      "id": "take_small",
+      "label": "拿小针",
+      "steps": []
+    },
+    {
+      "id": "insert_small",
+      "label": "刺小针",
+      "steps": []
+    },
+    {
+      "id": "wait_5s",
+      "label": "等待 5 秒",
+      "wait_seconds": 5.0,
+      "steps": []
+    },
+    {
+      "id": "retrieve_large",
+      "label": "拿回大针",
+      "steps": []
+    },
+    {
+      "id": "retrieve_small",
+      "label": "拿回小针",
+      "steps": []
+    }
+  ]
+}
