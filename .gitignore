@@ -7,3 +7,8 @@ robot_backend/yolo_lab_data/
 robot_backend/__pycache__/
 robot_backend/task1/__pycache__/
 *.pyc
+.env
+.env.*
+!.env.example
+voice_backend/__pycache__/
+voice_backend/tests/__pycache__/

@@ -536,6 +536,7 @@
       *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
     }
   </style>
+  <link rel="stylesheet" href="assets/voice.css">
 </head>
 <body>
   <header class="shell topbar">
@@ -545,7 +546,9 @@
         <button class="audience-btn active" data-experience="mannequin" type="button">假人教学</button>
         <button class="audience-btn" data-experience="human" type="button">真人科普</button>
       </div>
+      <button class="outline-btn" id="headerQuestion" type="button">语音问答</button>
       <button class="outline-btn" id="headerVoice" type="button">聆听导览</button>
+      <a class="outline-btn project-overview-link" href="overview.html">项目全景 ↗</a>
     </div>
   </header>
 
@@ -575,19 +578,40 @@
           <p id="modeDescription">对照真人经络古图与交互模型，点击穴位即可了解名称、位置与文化渊源。</p>
         </div>
         <section class="question-desk book-leaf" aria-labelledby="voiceQuestionTitle">
-          <div class="question-title"><strong id="voiceQuestionTitle">语音问询</strong><span class="voice-ready" id="micStatusBadge">待命</span></div>
-          <p class="question-tip">说出穴位问题或动作请求；页面会显示是否收到声音、听到了什么，以及最终回答。</p>
+          <div class="question-title"><strong id="voiceQuestionTitle">岐黄讲解员</strong><span class="voice-ready" id="micStatusBadge">待命</span></div>
+          <p class="question-tip">问名字、聊文化，也可以接着上一句继续问。选中穴位后，我会结合当前页面讲解。</p>
+          <div class="voice-service">
+            <div class="voice-service-row"><span id="voiceConnection">正在连接语音服务…</span><button id="voiceCheck" type="button">检查配置</button></div>
+            <small id="voiceModels"></small>
+          </div>
+          <div class="voice-meta" id="voiceContext"></div>
+          <div class="voice-options">
+            <label>讲解方式 <select id="voiceStyle"><option value="brief">简短讲解</option><option value="detail">详细讲解</option><option value="child">给小朋友讲</option></select></label>
+            <label>停顿结束 <select id="voiceSilence"><option value="0">手动结束</option><option value="2">停顿 2 秒</option><option value="3">停顿 3 秒</option><option value="5">停顿 5 秒</option></select></label>
+          </div>
           <div class="voice-meter" id="voiceMeter" aria-label="麦克风收音强度"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
           <div class="voice-card"><small>你说</small><p id="voiceTranscript">尚未开始。也可直接在下方输入问题。</p></div>
           <div class="voice-card answer"><small>回答</small><p id="voiceReply">我会在这里显示完整回答。</p><button class="confirm-voice-action" id="confirmVoiceAction" type="button" hidden>确认执行动作</button></div>
-          <textarea class="voice-input" id="voiceTextInput" rows="2" placeholder="例如：帮我指出大椎穴在哪里"></textarea>
-          <div class="voice-actions"><button class="mic-btn" id="micButton" type="button">开始语音提问 · 12 秒</button><button class="send-question" id="sendVoiceText" type="button">发送问题</button></div>
+          <textarea class="voice-input" id="voiceTextInput" rows="2" aria-label="问题或识别结果，可修改" maxlength="1500" placeholder="例如：这个穴位为什么叫这个名字？识别结果也可以在这里修改。"></textarea>
+          <div class="voice-actions"><button class="mic-btn" id="micButton" type="button">开始说话</button><button class="send-question" id="sendVoiceText" type="button">发送问题</button></div>
           <div class="voice-state-line" id="voiceQuestionState" role="status" aria-live="polite">麦克风尚未启用</div>
+          <div class="voice-toolbar">
+            <button id="voiceStop" type="button">停止讲解 / 取消</button><button id="voiceReplay" type="button" disabled>重播回答</button><button id="voiceReset" type="button">新对话</button>
+            <label><input id="voiceMute" type="checkbox">静音</label>
+          </div>
+          <div class="voice-shortcuts">
+            <button data-voice-style="brief" data-voice-prompt="请简短介绍当前选中的内容。" type="button">简短讲解</button>
+            <button data-voice-style="detail" data-voice-prompt="请详细讲解当前选中的内容。" type="button">详细讲解</button>
+            <button data-voice-style="child" data-voice-prompt="请用小学生能懂的话讲讲当前选中的内容。" type="button">给小朋友讲</button>
+          </div>
+          <p id="voiceSources" class="voice-meta"></p><p id="voiceTiming" class="voice-meta"></p>
+          <details class="voice-history"><summary>最近对话 · <span id="voiceHistoryCount">0 轮</span></summary><div id="voiceHistory" class="voice-history-content"></div></details>
+          <p class="voice-footnote">AI 合成声音 · 录音和问题经本机服务发送至 OpenAI；朗读文本发送至当前声音服务（OpenAI 或豆包）。对话仅保留在本页内存中，刷新或新对话可清空。</p>
           <p class="question-tip">可以这样问：</p>
           <div class="question-examples">
             <button class="ask-chip" data-question="大椎为什么叫大椎？" type="button">“大椎为什么叫大椎？”</button>
-            <button class="ask-chip" data-question="帮我指出大椎穴在哪里" type="button">“帮我指出大椎穴在哪里”</button>
-            <button class="ask-chip" data-question="顺着肩背的路线按摩" type="button">“顺着肩背的路线按摩”</button>
+            <button class="ask-chip" data-question="帮我看看左天宗，再讲讲它的名字" type="button">“看看左天宗，讲讲它的名字”</button>
+            <button class="ask-chip" data-question="能用更简单的话解释吗？" type="button">“能用更简单的话解释吗？”</button>
           </div>
         </section>
         <div class="legend">
@@ -783,7 +807,6 @@
     let timer = null;
     let currentExperience = 'mannequin';
     let currentPoint = pointSets.back[0];
-    let voiceQuestionSession = null;
     let pendingVoiceAction = null;
 
     const $ = (id) => document.getElementById(id);
@@ -884,6 +907,7 @@
         $('progressValue').textContent = `${progress}%`;
         $('progressBar').style.width = `${progress}%`;
       }
+      window.dispatchEvent(new Event('qihuang:context'));
     }
 
     function currentNarration(kind = 'overview') {
@@ -902,234 +926,14 @@
       return `现在看到的是${point.name}，国际代码${point.id}，属于${point.channel}。${point.description}${point.meaning}${point.tradition}`;
     }
 
-    function readTextAloud(text) {
-      if (!('speechSynthesis' in window)) {
-        $('voiceState').textContent = '当前浏览器不支持语音朗读';
-        return;
-      }
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'zh-CN';
-      utterance.rate = .9;
-      utterance.pitch = .92;
-      const voices = window.speechSynthesis.getVoices();
-      utterance.voice = voices.find(v => /zh-CN|Chinese/i.test(`${v.lang} ${v.name}`)) || null;
-      utterance.onstart = () => { $('voiceAgent').classList.add('speaking'); $('voiceState').textContent = '正在为你讲解'; };
-      utterance.onend = () => { $('voiceAgent').classList.remove('speaking'); $('voiceState').textContent = '讲解完毕 · 可继续提问'; };
-      utterance.onerror = () => { $('voiceAgent').classList.remove('speaking'); $('voiceState').textContent = '朗读暂不可用，请阅读文字'; };
-      window.speechSynthesis.speak(utterance);
-    }
-
-    function speak(kind = 'overview') {
-      const text = currentNarration(kind);
-      $('agentAnswer').textContent = text;
-      readTextAloud(text);
-    }
-
-    function setVoicePhase(label, message, listening = false) {
+    function readTextAloud(text) { return window.QihuangVoice?.narrate(text); }
+    function speak(kind = 'overview') { return readTextAloud(currentNarration(kind)); }
+    function setVoicePhase(label, message) {
       $('micStatusBadge').textContent = label;
-      $('micStatusBadge').classList.toggle('listening', listening);
       $('voiceQuestionState').textContent = message;
     }
-
-    function setVoiceMeter(value = 0) {
-      $('voiceMeter').querySelectorAll('i').forEach((bar, index) => {
-        const wave = .42 + Math.sin(index * 1.47 + Date.now() / 155) * .2;
-        bar.style.setProperty('--level', Math.max(0, Math.min(1, value * (wave + .78))));
-      });
-    }
-
-    async function startAudioFeedback(session) {
-      if (!navigator.mediaDevices?.getUserMedia) throw new Error('当前浏览器不能读取麦克风，请改用文字输入');
-      session.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      if (!session.active) {
-        session.stream.getTracks().forEach(track => track.stop());
-        return;
-      }
-      session.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      session.analyser = session.audioContext.createAnalyser();
-      session.analyser.fftSize = 128;
-      session.audioContext.createMediaStreamSource(session.stream).connect(session.analyser);
-      const data = new Uint8Array(session.analyser.frequencyBinCount);
-      const draw = () => {
-        if (!session.active || !session.analyser) return;
-        session.analyser.getByteFrequencyData(data);
-        const average = data.reduce((sum, item) => sum + item, 0) / data.length;
-        setVoiceMeter(Math.min(1, average / 85));
-        session.meterFrame = requestAnimationFrame(draw);
-      };
-      draw();
-    }
-
-    function stopAudioFeedback(session) {
-      if (!session) return;
-      if (session.meterFrame) cancelAnimationFrame(session.meterFrame);
-      session.stream?.getTracks().forEach(track => track.stop());
-      session.audioContext?.close?.().catch?.(() => {});
-      setVoiceMeter(0);
-    }
-
-    function localQuestionFallback(words) {
-      if (/急停|紧急停止|停止机械臂|机械臂停下/.test(words)) return { reply: '我识别到停止请求，但当前本机动作桥未连接。请立即使用机器人实体急停按钮。' };
-      const namedPoint = [...pointSets.back, ...pointSets.front].find(point => words.includes(point.name.replace(/[左右]/, '')) || words.includes(point.name));
-      const asksAction = /指|指出|找|带我看|移动到|运动到/.test(words);
-      if (namedPoint && asksAction && pointSets.back.some(point => point.id === namedPoint.id)) {
-        return { reply: `我理解为让机械臂指向${namedPoint.name}，但当前本机机器人服务未连接，因此没有提交动作。请先启动本机服务。` };
-      }
-      const point = namedPoint || currentPoint;
-      if (/名字|为什么|叫/.test(words)) return { reply: `${point.name}为什么这样叫？${point.meaning}${point.history}` };
-      if (/传统|作用|经络|古籍|历史|渊源/.test(words)) return { reply: `${point.name}在传统经络理论中，${point.tradition}这是文化知识介绍，不代表医疗建议。` };
-      if (/哪里|位置|怎么找|在哪/.test(words)) return { reply: `${point.name}的位置是：${point.description}真人定位会因体型不同采用比例测量，应由专业人员确认。` };
-      if (/按摩|循按|顺着|沿着/.test(words)) return { reply: '我识别到按摩路线请求，但当前只有穴位指向动作完成示教。按摩轨迹需要单独记录起点、中间关键帧与撤离位后才能开放执行。' };
-      return { reply: '问题已经收到。当前网页尚未连接医学知识大模型，只能回答页面内置穴位资料；连接本机智能服务和模型后，才能扩展到更广泛的医学文化问答。' };
-    }
-
-    async function answerVoiceQuestion(words) {
-      const question = words.trim();
-      if (!question) return;
-      pendingVoiceAction = null;
-      $('confirmVoiceAction').hidden = true;
-      $('voiceTranscript').textContent = question;
-      $('voiceReply').textContent = '正在理解问题……';
-      setVoicePhase('理解中', '正在判断这是知识问题还是机械臂动作请求');
-      let result;
-      try {
-        if (!localRobotConnected) throw new Error('local-offline');
-        const response = await fetch(`${localRobotBase}/api/agent`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: question }),
-          signal: AbortSignal.timeout(2500)
-        });
-        result = await response.json();
-        if (!response.ok || !result.ok) throw new Error(result.error || 'agent-error');
-      } catch (_) {
-        result = localQuestionFallback(question);
-      }
-      $('voiceReply').textContent = result.reply;
-      $('agentAnswer').textContent = result.reply;
-      readTextAloud(result.reply);
-      if (result.requires_confirmation && result.proposal) {
-        pendingVoiceAction = result.proposal;
-        $('confirmVoiceAction').textContent = result.proposal.type === 'emergency_stop'
-          ? '确认发送软件急停'
-          : `确认让机械臂指向${result.proposal.label}`;
-        $('confirmVoiceAction').hidden = false;
-        setVoicePhase('待确认', result.proposal.type === 'emergency_stop'
-          ? '软件急停不能代替实体急停，请同时做好现场处置'
-          : '语音只生成动作建议；点击确认后才会交给本机安全检查');
-      } else {
-        setVoicePhase(result.intent === 'model_required' ? '模型未接入' : '已回答', localRobotConnected ? '本机服务已返回结果' : '使用页面内置资料回答；本机智能服务未连接');
-      }
-    }
-
-    function finishVoiceQuestion(shouldAnswer = true, message = '') {
-      const session = voiceQuestionSession;
-      if (!session) return;
-      session.active = false;
-      voiceQuestionSession = null;
-      clearInterval(session.countdown);
-      $('micButton').classList.remove('listening');
-      $('micButton').textContent = '开始语音提问 · 12 秒';
-      try { session.recognition?.stop(); } catch (_) {}
-      stopAudioFeedback(session);
-      const words = session.transcript.trim();
-      if (message) setVoicePhase('未录入', message);
-      if (shouldAnswer && words) {
-        $('voiceTranscript').textContent = words;
-        setVoicePhase('已听到', '录音已停止，正在生成回答');
-        window.setTimeout(() => answerVoiceQuestion(words), 280);
-      } else if (shouldAnswer && !message) {
-        setVoicePhase('未听清', '没有识别到文字，请靠近麦克风重试或直接输入问题');
-      }
-    }
-
-    function launchVoiceRecognition(session) {
-      if (!session.active || Date.now() >= session.endAt) return finishVoiceQuestion();
-      const recognition = new session.Recognition();
-      session.recognition = recognition;
-      recognition.lang = 'zh-CN';
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.onstart = () => {
-        if (voiceQuestionSession === session) setVoicePhase('正在聆听', '麦克风已开启，请自然说出完整问题', true);
-      };
-      recognition.onresult = event => {
-        let finalWords = '';
-        let interimWords = '';
-        for (let i = event.resultIndex; i < event.results.length; i += 1) {
-          const text = event.results[i][0].transcript;
-          if (event.results[i].isFinal) finalWords += text;
-          else interimWords += text;
-        }
-        if (finalWords) session.transcript = `${session.transcript} ${finalWords}`.trim();
-        const heard = `${session.transcript} ${interimWords}`.trim();
-        if (heard) {
-          $('voiceTranscript').textContent = heard;
-          setVoicePhase('正在转写', '已经收到声音，正在把语音转换为文字', true);
-        }
-      };
-      recognition.onerror = event => {
-        const fatal = ['not-allowed', 'service-not-allowed', 'audio-capture'].includes(event.error);
-        if (fatal) {
-          const message = event.error === 'audio-capture' ? '没有检测到麦克风，请检查设备' : '请允许浏览器使用麦克风后再试';
-          finishVoiceQuestion(false, message);
-        }
-      };
-      recognition.onend = () => {
-        if (voiceQuestionSession !== session || !session.active) return;
-        if (Date.now() < session.endAt && session.restarts < 6) {
-          session.restarts += 1;
-          window.setTimeout(() => launchVoiceRecognition(session), 120);
-        } else {
-          finishVoiceQuestion();
-        }
-      };
-      try { recognition.start(); }
-      catch (_) {
-        if (Date.now() < session.endAt) window.setTimeout(() => launchVoiceRecognition(session), 180);
-        else finishVoiceQuestion();
-      }
-    }
-
-    async function beginVoiceQuestion() {
-      if (voiceQuestionSession) {
-        finishVoiceQuestion();
-        return;
-      }
-      const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!Recognition) {
-        setVoicePhase('不支持', '当前浏览器没有语音转写能力，请使用 Chrome / Edge 或下方文字输入');
-        $('voiceReply').textContent = '这个浏览器可以浏览页面，但不能把语音转换成文字。你仍可直接输入问题并获得同样的回答。';
-        return;
-      }
-      window.speechSynthesis?.cancel();
-      const session = {
-        Recognition,
-        active: true,
-        endAt: Date.now() + 12000,
-        transcript: '',
-        recognition: null,
-        countdown: null,
-        restarts: 0
-      };
-      voiceQuestionSession = session;
-      $('voiceTranscript').textContent = '正在申请麦克风权限……';
-      setVoicePhase('请求权限', '请在浏览器弹窗中允许使用麦克风');
-      try {
-        await startAudioFeedback(session);
-      } catch (error) {
-        finishVoiceQuestion(false, error.name === 'NotAllowedError' ? '麦克风权限被拒绝，请在地址栏权限设置中允许后重试' : error.message);
-        return;
-      }
-      $('micButton').classList.add('listening');
-      session.countdown = window.setInterval(() => {
-        const seconds = Math.max(0, Math.ceil((session.endAt - Date.now()) / 1000));
-        $('micButton').textContent = `结束提问 · 还剩 ${seconds} 秒`;
-        if (seconds <= 0) finishVoiceQuestion();
-      }, 200);
-      launchVoiceRecognition(session);
-    }
+    function answerVoiceQuestion(words) { return window.QihuangVoice?.ask(words); }
+    function beginVoiceQuestion() { return window.QihuangVoice?.toggleMic(); }
 
     function stopPlayback() {
       if (timer) clearInterval(timer);
@@ -1360,7 +1164,8 @@
       answerVoiceQuestion(btn.dataset.question);
     });
     $('playButton').onclick = togglePlayback;
-    $('voiceButton').onclick = () => window.speechSynthesis?.speaking ? window.speechSynthesis.cancel() : speak();
+    $('voiceButton').onclick = () => window.QihuangVoice?.speaking ? window.QihuangVoice.cancel() : speak();
+    $('headerQuestion').onclick = () => document.querySelector('.question-desk').scrollIntoView({ behavior: 'smooth', block: 'start' });
     $('headerVoice').onclick = () => { document.querySelector('.detail').scrollIntoView({ behavior: 'smooth', block: 'center' }); speak(); };
     $('micButton').onclick = beginVoiceQuestion;
     $('sendVoiceText').onclick = () => answerVoiceQuestion($('voiceTextInput').value);
@@ -1587,10 +1392,27 @@
       }
       window.setTimeout(refreshRobotBridge, 450);
     });
-    window.speechSynthesis?.addEventListener?.('voiceschanged', () => {});
+    window.QihuangPage = {
+      context: () => ({ point: currentPoint.id, mode: currentMode, view: currentView, audience: currentExperience, label: currentMode === 'guide' ? currentPoint.name : genericTargets[currentMode].name }),
+      select: (id) => {
+        for (const [view, points] of Object.entries(pointSets)) {
+          const index = points.findIndex(point => point.id === id);
+          if (index >= 0) { stopPlayback(); currentMode = 'guide'; currentView = view; currentIndex = index; render(); return true; }
+        }
+        return false;
+      },
+      proposal: (proposal) => {
+        pendingVoiceAction = proposal;
+        $('confirmVoiceAction').hidden = !proposal;
+        if (proposal) $('confirmVoiceAction').textContent = proposal.type === 'emergency_stop' ? '确认发送软件急停' : `确认让机械臂指向${proposal.label}`;
+      }
+    };
+
     window.setInterval(refreshRobotBridge, 1200);
     refreshRobotBridge();
+    if (new URLSearchParams(window.location.search).get('mode') === 'needle') currentMode = 'needle';
     render();
   </script>
+  <script src="assets/voice.js"></script>
 </body>
 </html>
