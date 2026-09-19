@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate and execute the seven-stage left-arm needle demonstration."""
+"""Validate and execute the five-stage left-arm needle demonstration."""
 
 from __future__ import annotations
 
@@ -14,12 +14,13 @@ from pathlib import Path
 
 FLOW_PATH = Path(__file__).resolve().parent / "needle_flow.json"
 GESTURES = {
-    "pinch": [0, 71, 0, 255, 255, 255],
+    "pinch": [0, 96, 0, 255, 255, 255],
     "release": [255, 71, 255, 255, 255, 255],
 }
+GESTURE_PAUSE_SECONDS = 1.5
 STAGE_IDS = (
     "take_large", "insert_large", "take_small", "insert_small",
-    "wait_5s", "retrieve_large", "retrieve_small",
+    "wait_5s",
 )
 
 
@@ -31,7 +32,7 @@ def load_flow(path: Path = FLOW_PATH) -> dict:
         raise ValueError("无针点穴流程必须固定使用左臂")
     stages = flow.get("stages")
     if not isinstance(stages, list) or tuple(stage.get("id") for stage in stages) != STAGE_IDS:
-        raise ValueError("无针点穴流程必须保持固定的七阶段顺序")
+        raise ValueError("无针点穴流程必须保持固定的五阶段顺序")
     return flow
 
 
@@ -94,7 +95,7 @@ def execute(flow: dict, bridge_url: str, speed_scale: float = 1.0,
     total = sum(len(stage.get("steps") or []) for stage in flow["stages"])
     current = 0
     for stage_index, stage in enumerate(flow["stages"], 1):
-        print(f"[阶段 {stage_index}/7] {stage['label']}", flush=True)
+        print(f"[阶段 {stage_index}/{len(flow['stages'])}] {stage['label']}", flush=True)
         for step in stage.get("steps") or []:
             current += 1
             step_type = step.get("type")
@@ -111,10 +112,14 @@ def execute(flow: dict, bridge_url: str, speed_scale: float = 1.0,
             else:
                 positions = GESTURES[step_type]
                 label = "捏" if step_type == "pinch" else "放"
+                print(f"  [等待] {label}之前停留 {GESTURE_PAUSE_SECONDS:g} 秒", flush=True)
+                time.sleep(GESTURE_PAUSE_SECONDS)
                 print(f"  [{current}/{total}] 左手{label} {positions}", flush=True)
                 bridge_request(bridge_url, "/hand", {
                     "hand": "left", "positions": positions, "speed_scale": 1.0,
                 }, timeout=timeout)
+                print(f"  [等待] {label}完成后停留 {GESTURE_PAUSE_SECONDS:g} 秒", flush=True)
+                time.sleep(GESTURE_PAUSE_SECONDS)
         wait_seconds = max(0.0, float(stage.get("wait_seconds", 0.0)))
         if wait_seconds:
             print(f"  [等待] {wait_seconds:g} 秒", flush=True)
@@ -122,7 +127,7 @@ def execute(flow: dict, bridge_url: str, speed_scale: float = 1.0,
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="无针点穴七阶段真机演示")
+    parser = argparse.ArgumentParser(description="无针点穴五阶段真机演示")
     parser.add_argument("--execute", action="store_true", help="确认执行真机动作；省略时只校验")
     parser.add_argument("--bridge-url", default="http://127.0.0.1:8766")
     parser.add_argument("--speed-scale", type=float, default=1.0)
@@ -135,10 +140,10 @@ def main() -> int:
     if not ready:
         raise SystemExit("流程尚未完成示教：" + "；".join(missing))
     if not args.execute:
-        print("无针点穴七阶段流程校验通过；未发送任何真机动作。", flush=True)
+        print("无针点穴五阶段流程校验通过；未发送任何真机动作。", flush=True)
         return 0
     execute(flow, args.bridge_url, args.speed_scale, args.interface_timeout)
-    print("无针点穴七阶段演示完成。", flush=True)
+    print("无针点穴五阶段演示完成。", flush=True)
     return 0
 
 

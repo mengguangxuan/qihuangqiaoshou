@@ -39,22 +39,42 @@ FLOW_DIR = PROJECT_DIR / "acupoint_flows"
 FLOW_RUNNER = PROJECT_DIR / "run_acupoint_flow.py"
 NEEDLE_FLOW_PATH = PROJECT_DIR / "needle_flow.json"
 NEEDLE_RUNNER = PROJECT_DIR / "run_needle_flow.py"
+TASK_FLOW_DIR = PROJECT_DIR / "task_flows"
+TASK_FLOW_RUNNER = PROJECT_DIR / "run_task_flow.py"
+TASK_FLOW_IDS = ("tap", "massage", "cupping")
 EVENT_LOG_PATH = PROJECT_DIR / "data" / "acupoint_events.jsonl"
 NEEDLE_GESTURES = {
-    "pinch": {"label": "捏", "positions": [0, 71, 0, 255, 255, 255]},
+    "pinch": {"label": "捏", "positions": [0, 96, 0, 255, 255, 255]},
     "release": {"label": "放", "positions": [255, 71, 255, 255, 255, 255]},
+}
+TASK_GESTURES = {
+    **NEEDLE_GESTURES,
+    "fist_ready": {"label": "握拳准备", "positions": [255, 255, 0, 0, 0, 0]},
+    "fist": {"label": "握拳", "positions": [0, 0, 0, 0, 0, 0]},
+    "grab": {"label": "抓", "positions": [155, 0, 119, 119, 112, 157]},
+    "massage_grab": {"label": "抓筋膜枪", "positions": [0, 0, 0, 0, 0, 0]},
+    "massage_on": {"label": "开枪", "positions": [0, 0, 255, 0, 0, 0]},
 }
 
 # Canonical coordinates describe the physical tag layout on the mannequin.
 # The top/bottom four tags form the main quadrilateral. ID 2 is the neck tag
 # and gives an extra constraint when visible.
 MARKER_LAYOUT = {
+    # Current upper-corner tags (replaced on 2026-09-18).
+    22: (0.0, 0.0),
+    23: (1.0, 0.0),
+    # Keep the previous upper-corner tag IDs as compatible aliases.
     11: (0.0, 0.0),
     1: (1.0, 0.0),
     3: (0.0, 1.0),
     19: (1.0, 1.0),
     2: (0.5, -0.245),
 }
+
+PANEL_MARKER_QUADS = (
+    (22, 23, 3, 19),
+    (11, 1, 3, 19),
+)
 
 # Widely separated demonstration positions. These are intentionally described
 # as demo coordinates, not medical localization results.
@@ -64,6 +84,21 @@ ACUPOINTS = (
     (3, "右天宗", "SI11-R", (0.77, 0.31), (80, 255, 120), (24, -13)),
     (4, "左肾俞", "BL23-L", (0.32, 0.72), (255, 160, 70), (-214, -13)),
     (5, "右肾俞", "BL23-R", (0.68, 0.72), (255, 160, 70), (24, -13)),
+)
+
+# Extra points are visual teaching markers only.  They deliberately do not
+# enter ACUPOINTS, so the five existing robot flows and their taught
+# keyframes remain the only executable acupoint actions.
+DISPLAY_ACUPOINTS = ACUPOINTS + (
+    (6, "左肩井", "GB21-L", (0.17, 0.16), (210, 110, 255), (-190, -13)),
+    (7, "右肩井", "GB21-R", (0.83, 0.16), (210, 110, 255), (24, -13)),
+    (8, "左肺俞", "BL13-L", (0.32, 0.48), (90, 220, 255), (-190, -13)),
+    (9, "右肺俞", "BL13-R", (0.68, 0.48), (90, 220, 255), (24, -13)),
+    (10, "命门", "GV4", (0.50, 0.86), (80, 190, 255), (-55, 28)),
+    (11, "左膏肓", "BL43-L", (0.10, 0.38), (255, 135, 190), (-190, -13)),
+    (12, "右膏肓", "BL43-R", (0.90, 0.38), (255, 135, 190), (24, -13)),
+    (13, "左志室", "BL52-L", (0.18, 0.91), (180, 190, 255), (-190, -13)),
+    (14, "右志室", "BL52-R", (0.82, 0.91), (180, 190, 255), (24, -13)),
 )
 
 ACUPOINT_KNOWLEDGE = {
@@ -352,8 +387,25 @@ class ActionController:
             "checked_at": time.time(),
         }
         try:
-            health_status, health = self._bridge_request("GET", "/health")
-            state_status, robot_state = self._bridge_request("GET", "/state")
+            # A blocking MoveJ can briefly pause fresh joint-state publication
+            # even though the driver and robot remain connected.  Wait for the
+            # first fresh sample instead of caching that short gap as a lasting
+            # bridge failure.  Any non-feedback error still fails immediately.
+            retry_deadline = time.monotonic() + 4.5
+            while True:
+                health_status, health = self._bridge_request("GET", "/health")
+                state_status, robot_state = self._bridge_request("GET", "/state")
+                errors = [str(item) for item in (health.get("errors") or [])]
+                feedback_only_stale = bool(errors) and all(
+                    item.startswith("关节状态过期:") for item in errors
+                )
+                if (
+                    health_status == HTTPStatus.OK
+                    or not feedback_only_stale
+                    or time.monotonic() >= retry_deadline
+                ):
+                    break
+                time.sleep(0.25)
             result.update({
                 "ok": health_status == HTTPStatus.OK and state_status == HTTPStatus.OK and bool(health.get("ok")),
                 "health": health,
@@ -388,6 +440,31 @@ class ActionController:
             })
         if phase == "error":
             raise RuntimeError(message)
+        self._record_event("emergency_stop", True, message)
+        return self.get_state()
+
+    def emergency_release(self) -> dict:
+        """Release the software emergency latch without enabling either arm."""
+        try:
+            status, payload = self._bridge_request("POST", "/emergency_stop", {"emergency": False})
+            if status != HTTPStatus.OK or not payload.get("ok"):
+                raise RuntimeError(payload.get("error") or f"动作桥返回 {status}")
+            phase = "emergency_released"
+            message = "已取消双臂软件急停；机械臂仍保持掉使能，请按需重新使能"
+        except Exception as exc:  # noqa: BLE001
+            phase, message = "error", f"取消软件急停失败：{exc}"
+        with self.lock:
+            self.state.update({
+                "running": False,
+                "arm_enabled": {"left": False, "right": False},
+                "robot_enabled": False,
+                "phase": phase,
+                "message": message,
+                "updated_at": time.time(),
+            })
+        if phase == "error":
+            raise RuntimeError(message)
+        self._record_event("emergency_release", True, message)
         return self.get_state()
 
     def set_robot_enabled(self, arm: str, enabled: bool) -> dict:
@@ -489,8 +566,9 @@ class ActionController:
         flow = json.loads(NEEDLE_FLOW_PATH.read_text(encoding="utf-8"))
         if flow.get("schema") != "fivefinger.needle-flow/v1" or flow.get("arm") != "left":
             raise ValueError("无针点穴流程格式无效，且必须固定使用左臂")
-        if len(flow.get("stages") or []) != 7:
-            raise ValueError("无针点穴流程必须包含固定的七个阶段")
+        if tuple(stage.get("id") for stage in (flow.get("stages") or [])) != (
+                "take_large", "insert_large", "take_small", "insert_small", "wait_5s"):
+            raise ValueError("无针点穴流程必须包含固定的五个阶段")
         return flow
 
     @staticmethod
@@ -528,7 +606,7 @@ class ActionController:
                 missing.append(f"{stage['label']}没有步骤")
             for index, raw in enumerate(raw_steps, 1):
                 step_type = raw.get("type")
-                if step_type not in {"pose", "pinch", "release"}:
+                if step_type not in {"pose", *NEEDLE_GESTURES}:
                     missing.append(f"{stage['label']}步骤{index}类型无效")
                 joints = raw.get("joints")
                 recorded = step_type != "pose" or (isinstance(joints, list) and len(joints) == 7)
@@ -559,7 +637,7 @@ class ActionController:
                 "steps": steps,
             })
         return {
-            "name": flow.get("name", "无针点穴七阶段演示"),
+            "name": flow.get("name", "无针点穴五阶段演示"),
             "arm": "left",
             "arm_label": "左臂",
             "speed": float(flow.get("speed", 1.5)) * self.speed_scale,
@@ -573,20 +651,26 @@ class ActionController:
             "updated_at": NEEDLE_FLOW_PATH.stat().st_mtime,
         }
 
-    def _capture_left_joints(self) -> list[float]:
+    def _capture_joints(self, arm: str) -> list[float]:
+        if arm not in {"left", "right"}:
+            raise ValueError("arm 必须是 left 或 right")
+        arm_label = "左臂" if arm == "left" else "右臂"
         status, state = self._bridge_request("GET", "/state", timeout=3.0)
         if status != HTTPStatus.OK or not state.get("ok"):
             raise RuntimeError(state.get("error") or f"动作桥返回 {status}")
-        age = (state.get("joint_state_age_s") or {}).get("left")
-        joints = (state.get("joints") or {}).get("left")
+        age = (state.get("joint_state_age_s") or {}).get(arm)
+        joints = (state.get("joints") or {}).get(arm)
         if age is None or not math.isfinite(float(age)) or not 0 <= float(age) <= 0.5:
-            raise RuntimeError(f"左臂真实反馈已过期，未保存缓存姿态：{age}")
+            raise RuntimeError(f"{arm_label}真实反馈已过期，未保存缓存姿态：{age}")
         if not isinstance(joints, list) or len(joints) < 7:
-            raise RuntimeError("动作桥没有返回完整的左臂 7 关节状态")
+            raise RuntimeError(f"动作桥没有返回完整的{arm_label} 7 关节状态")
         values = [round(float(item), 6) for item in joints[:7]]
         if not all(math.isfinite(item) for item in values):
-            raise RuntimeError("左臂关节状态包含无效数值")
+            raise RuntimeError(f"{arm_label}关节状态包含无效数值")
         return values
+
+    def _capture_left_joints(self) -> list[float]:
+        return self._capture_joints("left")
 
     def needle_add_step(self, stage_id: str, step_type: str) -> dict:
         if step_type not in {"pose", "pinch", "release"}:
@@ -706,8 +790,8 @@ class ActionController:
             if not tracking:
                 raise RuntimeError("AprilTag 定位尚未稳定，禁止执行")
             if not info["ready"]:
-                raise RuntimeError("无针点穴七阶段尚未完成示教：" + "；".join(info["missing"][:3]))
-            message = "无针点穴七阶段演示已进入队列"
+                raise RuntimeError("无针点穴五阶段尚未完成示教：" + "；".join(info["missing"][:3]))
+            message = "无针点穴五阶段演示已进入队列"
             self.state.update({"running": True, "point": "NEEDLE", "phase": "needle_queued",
                                "message": message, "updated_at": time.time()})
         threading.Thread(target=self._run_needle, daemon=True).start()
@@ -716,7 +800,7 @@ class ActionController:
 
     def _run_needle(self) -> None:
         with self.lock:
-            self.state.update({"phase": "needle_running", "message": "正在执行无针点穴七阶段演示",
+            self.state.update({"phase": "needle_running", "message": "正在执行无针点穴五阶段演示",
                                "updated_at": time.time()})
         command = [
             sys.executable, str(NEEDLE_RUNNER), "--execute",
@@ -728,13 +812,348 @@ class ActionController:
             output = (result.stdout if result.returncode == 0 else result.stderr).strip()
             if result.returncode != 0:
                 raise RuntimeError(output or f"无针点穴流程退出码 {result.returncode}")
-            phase, message, ok = "needle_done", "无针点穴七阶段演示完成", True
+            phase, message, ok = "needle_done", "无针点穴五阶段演示完成", True
         except Exception as exc:  # noqa: BLE001
             output = str(exc)
             phase, message, ok = "error", f"无针点穴演示失败：{exc}", False
         with self.lock:
             self.state.update({"running": False, "phase": phase, "message": message, "updated_at": time.time()})
         self._record_event("needle_done", ok, message, point="NEEDLE", output=output)
+
+    @staticmethod
+    def _task_flow_path(task_id: str) -> Path:
+        if task_id not in TASK_FLOW_IDS:
+            raise ValueError(f"未知任务：{task_id}")
+        return TASK_FLOW_DIR / f"{task_id}.json"
+
+    @classmethod
+    def _load_task_flow(cls, task_id: str) -> dict:
+        path = cls._task_flow_path(task_id)
+        flow = json.loads(path.read_text(encoding="utf-8"))
+        if flow.get("schema") != "fivefinger.task-flow/v1" or flow.get("id") != task_id:
+            raise ValueError(f"{task_id} 的关键帧流程格式无效")
+        if not isinstance(flow.get("stages"), list) or not flow["stages"]:
+            raise ValueError(f"{task_id} 必须包含至少一个阶段")
+        return flow
+
+    @classmethod
+    def _write_task_flow(cls, task_id: str, flow: dict) -> None:
+        path = cls._task_flow_path(task_id)
+        temporary = path.with_suffix(path.suffix + ".tmp")
+        temporary.write_text(json.dumps(flow, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        temporary.replace(path)
+
+    @staticmethod
+    def _task_stage(flow: dict, stage_id: str) -> dict:
+        stage = next((item for item in flow["stages"] if item.get("id") == stage_id), None)
+        if stage is None:
+            raise ValueError(f"未知阶段：{stage_id}")
+        return stage
+
+    @staticmethod
+    def _normalize_task_labels(flow: dict) -> None:
+        for stage in flow["stages"]:
+            pose_number = 0
+            for step in stage.get("steps") or []:
+                if step.get("type") == "pose":
+                    pose_number += 1
+                    arm_label = "左臂" if step.get("arm") == "left" else "右臂"
+                    step["label"] = f"{stage['label']} · {arm_label}姿态 {pose_number}"
+
+    def task_flow_info(self, task_id: str) -> dict:
+        flow = self._load_task_flow(task_id)
+        if task_id == "massage":
+            from run_task_flow import execution_flow
+            flow = execution_flow(flow)
+        path = self._task_flow_path(task_id)
+        missing: list[str] = []
+        stages = []
+        total_steps = 0
+        recorded_poses = 0
+        arms: set[str] = set()
+        for number, stage in enumerate(flow["stages"], 1):
+            raw_steps = stage.get("steps") or []
+            if not raw_steps:
+                missing.append(f"{stage['label']}没有步骤")
+            steps = []
+            for index, raw in enumerate(raw_steps, 1):
+                step_type = raw.get("type")
+                arm = str(raw.get("arm", ""))
+                if arm not in {"left", "right"}:
+                    missing.append(f"{stage['label']}步骤{index}未指定手臂")
+                else:
+                    arms.add(arm)
+                joints = raw.get("joints")
+                recorded = step_type != "pose" or (isinstance(joints, list) and len(joints) == 7)
+                needs_reteach = step_type == "pose" and recorded and raw.get("feedback_version") != 1
+                if step_type not in {"pose", *TASK_GESTURES}:
+                    missing.append(f"{stage['label']}步骤{index}类型无效")
+                if step_type == "pose" and not recorded:
+                    missing.append(f"{raw.get('label', stage['label'])}未记录")
+                if needs_reteach:
+                    missing.append(f"{raw.get('label', stage['label'])}为旧反馈记录，需覆盖重录")
+                if step_type == "pose" and recorded:
+                    recorded_poses += 1
+                gesture = TASK_GESTURES.get(step_type)
+                steps.append({
+                    "id": str(raw.get("id", "")), "type": step_type,
+                    "arm": arm, "arm_label": "左臂" if arm == "left" else "右臂",
+                    "label": raw.get("label") or (gesture or {}).get("label") or f"步骤 {index}",
+                    "recorded": recorded, "needs_reteach": needs_reteach,
+                    "joints": joints, "recorded_at": raw.get("recorded_at"),
+                    "positions": (gesture or {}).get("positions"),
+                })
+            total_steps += len(steps)
+            stages.append({
+                "number": number, "id": stage["id"], "label": stage["label"],
+                "wait_seconds": float(stage.get("wait_seconds", 0.0)), "steps": steps,
+            })
+        return {
+            "id": task_id, "name": flow.get("name", task_id),
+            "speed": float(flow.get("speed", 1.5)) * self.speed_scale,
+            "acceleration": float(flow.get("acceleration", 1.0)) * self.speed_scale,
+            "gestures": TASK_GESTURES, "stages": stages,
+            "total_steps": total_steps, "recorded_poses": recorded_poses,
+            "arms": sorted(arms), "ready": not missing, "missing": missing,
+            "updated_at": path.stat().st_mtime,
+        }
+
+    def task_flows_info(self) -> dict[str, dict]:
+        return {task_id: self.task_flow_info(task_id) for task_id in TASK_FLOW_IDS}
+
+    def task_add_step(self, task_id: str, stage_id: str, step_type: str, arm: str) -> dict:
+        if step_type not in {"pose", *TASK_GESTURES}:
+            raise ValueError("不支持的步骤类型")
+        if step_type in {"fist_ready", "fist"} and task_id != "tap":
+            raise ValueError("握拳准备和握拳仅用于捶背舒展")
+        if step_type == "grab" and task_id != "cupping":
+            raise ValueError("抓手势仅用于无火罐法")
+        if step_type in {"massage_grab", "massage_on"} and task_id != "massage":
+            raise ValueError("筋膜枪手势仅用于筋膜枪按摩")
+        if step_type == "massage_grab" and arm != "right":
+            raise ValueError("抓筋膜枪手势只能使用右手")
+        if step_type == "massage_on" and arm != "left":
+            raise ValueError("开枪手势只能使用左手")
+        if arm not in {"left", "right"}:
+            raise ValueError("必须选择左臂或右臂")
+        with self.lock:
+            if self.state["running"]:
+                raise RuntimeError("当前仍有动作或示教任务在运行")
+            self.state.update({"running": True, "phase": "task_editing",
+                               "message": f"正在添加{'姿态' if step_type == 'pose' else '手势'}",
+                               "updated_at": time.time()})
+        try:
+            joints = self._capture_joints(arm) if step_type == "pose" else None
+            flow = self._load_task_flow(task_id)
+            stage = self._task_stage(flow, stage_id)
+            step = {"id": f"{stage_id}-{time.time_ns()}", "type": step_type, "arm": arm}
+            if step_type == "pose":
+                step.update({"joints": joints, "hold": 0.0, "feedback_version": 1,
+                             "recorded_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                             "recorded_from": "http://127.0.0.1:8766/state"})
+            stage.setdefault("steps", []).append(step)
+            self._normalize_task_labels(flow)
+            self._write_task_flow(task_id, flow)
+            arm_label = "左臂" if arm == "left" else "右臂"
+            label = f"{arm_label}姿态" if step_type == "pose" else f"{arm_label[:-1]}手{TASK_GESTURES[step_type]['label']}"
+            message, ok = f"已在“{stage['label']}”末尾添加{label}", True
+        except Exception as exc:  # noqa: BLE001
+            message, ok = f"添加步骤失败：{exc}", False
+        with self.lock:
+            self.state.update({"running": False, "phase": "task_edited" if ok else "error",
+                               "message": message, "updated_at": time.time()})
+        self._record_event("task_step_add", ok, message, point=task_id, output=stage_id)
+        if not ok:
+            raise RuntimeError(message)
+        return self.get_state()
+
+    def task_record_step(self, task_id: str, stage_id: str, step_id: str) -> dict:
+        with self.lock:
+            if self.state["running"]:
+                raise RuntimeError("当前仍有动作或示教任务在运行")
+            self.state.update({"running": True, "phase": "task_teaching",
+                               "message": "正在覆盖记录当前姿态", "updated_at": time.time()})
+        try:
+            flow = self._load_task_flow(task_id)
+            stage = self._task_stage(flow, stage_id)
+            step = next((item for item in stage.get("steps") or [] if item.get("id") == step_id), None)
+            if step is None or step.get("type") != "pose":
+                raise ValueError("找不到要覆盖的姿态关键帧")
+            joints = self._capture_joints(str(step.get("arm", "")))
+            step.update({"joints": joints, "feedback_version": 1,
+                         "recorded_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+                         "recorded_from": "http://127.0.0.1:8766/state"})
+            self._write_task_flow(task_id, flow)
+            message, ok = f"已覆盖记录“{step.get('label', '姿态')}”", True
+        except Exception as exc:  # noqa: BLE001
+            message, ok = f"覆盖记录失败：{exc}", False
+        with self.lock:
+            self.state.update({"running": False, "phase": "task_taught" if ok else "error",
+                               "message": message, "updated_at": time.time()})
+        self._record_event("task_step_record", ok, message, point=task_id, output=stage_id)
+        if not ok:
+            raise RuntimeError(message)
+        return self.get_state()
+
+    def request_task_pose(self, task_id: str, stage_id: str, step_id: str) -> dict:
+        flow = self._load_needle_flow() if task_id == "needle" else self._load_task_flow(task_id)
+        stage = self._task_stage(flow, stage_id)
+        step = next((item for item in stage.get("steps") or [] if item.get("id") == step_id), None)
+        if step is None or step.get("type") != "pose":
+            raise ValueError("找不到要逐步执行的姿态关键帧")
+        arm = "left" if task_id == "needle" else str(step.get("arm", ""))
+        if arm not in {"left", "right"}:
+            raise ValueError("该姿态未指定左臂或右臂")
+        joints = step.get("joints")
+        if not isinstance(joints, list) or len(joints) != 7:
+            raise ValueError("该姿态尚未记录完整的 7 关节位置")
+        joints = [float(value) for value in joints]
+        if not all(math.isfinite(value) for value in joints):
+            raise ValueError("该姿态包含无效关节值")
+        if step.get("feedback_version") != 1:
+            raise ValueError("该姿态为旧反馈记录，请先覆盖重录")
+        speed = float(flow.get("speed", 1.5)) * self.speed_scale
+        acceleration = float(flow.get("acceleration", 1.0)) * self.speed_scale
+        label = str(step.get("label") or f"{stage['label']}姿态")
+        arm_label = "左臂" if arm == "left" else "右臂"
+        bridge = self.preflight()
+        with self.lock:
+            if not self.enabled:
+                raise RuntimeError("真机执行未启用；请用 --enable-robot 启动本地服务")
+            if not self.state["arm_enabled"].get(arm, False):
+                raise RuntimeError(f"{arm_label}尚未使能")
+            if not bridge["ok"]:
+                raise RuntimeError(f"机器人连接预检未通过：{bridge['message']}")
+            if self.state["running"]:
+                raise RuntimeError("上一组动作仍在执行")
+            message = f"{label}已进入逐步执行队列"
+            self.state.update({"running": True, "point": task_id, "phase": "task_pose_queued",
+                               "message": message, "updated_at": time.time()})
+        threading.Thread(
+            target=self._run_task_pose,
+            args=(task_id, label, arm, joints, speed, acceleration),
+            daemon=True,
+        ).start()
+        self._record_event("task_pose_execute", True, message, point=task_id, output=step_id)
+        return self.get_state()
+
+    def _run_task_pose(self, task_id: str, label: str, arm: str, joints: list[float],
+                       speed: float, acceleration: float) -> None:
+        arm_label = "左臂" if arm == "left" else "右臂"
+        with self.lock:
+            self.state.update({"phase": "task_pose_running", "message": f"正在执行{label}",
+                               "updated_at": time.time()})
+        try:
+            status, payload = self._bridge_request("POST", "/move_joint", {
+                "arm": arm,
+                "joints": joints,
+                "speed": speed,
+                "acceleration": acceleration,
+            }, timeout=60.0)
+            if status != HTTPStatus.OK or not payload.get("ok"):
+                raise RuntimeError(payload.get("error") or f"动作桥返回 {status}")
+            phase, message, ok = "task_pose_done", f"{label}已到位（{arm_label}）", True
+        except Exception as exc:  # noqa: BLE001
+            phase, message, ok = "error", f"{label}逐步执行失败：{exc}", False
+        with self.lock:
+            self.state.update({"running": False, "phase": phase, "message": message,
+                               "updated_at": time.time()})
+        self._record_event("task_pose_done", ok, message, point=task_id, output=label)
+        if ok:
+            # Refresh the cached gate after motion.  preflight() tolerates the
+            # driver's short post-MoveJ feedback gap and leaves the next step
+            # ready without requiring a manual connection check.
+            self.preflight()
+
+    def task_delete_step(self, task_id: str, stage_id: str, step_id: str) -> dict:
+        with self.lock:
+            if self.state["running"]:
+                raise RuntimeError("当前仍有动作或示教任务在运行")
+            flow = self._load_task_flow(task_id)
+            stage = self._task_stage(flow, stage_id)
+            steps = stage.get("steps") or []
+            index = next((i for i, item in enumerate(steps) if item.get("id") == step_id), None)
+            if index is None:
+                raise ValueError("找不到要删除的关键帧")
+            removed = steps.pop(index)
+            self._normalize_task_labels(flow)
+            self._write_task_flow(task_id, flow)
+            message = f"已从“{stage['label']}”删除{removed.get('label', '步骤')}"
+            self.state.update({"phase": "task_edited", "message": message, "updated_at": time.time()})
+        self._record_event("task_step_delete", True, message, point=task_id, output=stage_id)
+        return self.get_state()
+
+    def task_move_step(self, task_id: str, stage_id: str, step_id: str, direction: str) -> dict:
+        if direction not in {"up", "down"}:
+            raise ValueError("direction 必须是 up 或 down")
+        with self.lock:
+            if self.state["running"]:
+                raise RuntimeError("当前仍有动作或示教任务在运行")
+            flow = self._load_task_flow(task_id)
+            stage = self._task_stage(flow, stage_id)
+            steps = stage.get("steps") or []
+            index = next((i for i, item in enumerate(steps) if item.get("id") == step_id), None)
+            if index is None:
+                raise ValueError("找不到要移动的关键帧")
+            target = index - 1 if direction == "up" else index + 1
+            if not 0 <= target < len(steps):
+                raise RuntimeError("该步骤已经位于阶段边界")
+            steps[index], steps[target] = steps[target], steps[index]
+            self._normalize_task_labels(flow)
+            self._write_task_flow(task_id, flow)
+            message = f"已调整“{stage['label']}”内部步骤顺序"
+            self.state.update({"phase": "task_edited", "message": message, "updated_at": time.time()})
+        return self.get_state()
+
+    def request_task_flow(self, task_id: str) -> dict:
+        info = self.task_flow_info(task_id)
+        bridge = self.preflight()
+        with self.shared.lock:
+            tracking = bool(self.shared.status.get("tracking"))
+        with self.lock:
+            if not self.enabled:
+                raise RuntimeError("真机执行未启用；请用 --enable-robot 启动本地服务")
+            disabled = ["左臂" if arm == "left" else "右臂" for arm in info["arms"]
+                        if not self.state["arm_enabled"].get(arm, False)]
+            if disabled:
+                raise RuntimeError("、".join(disabled) + "尚未使能")
+            if not bridge["ok"]:
+                raise RuntimeError(f"机器人连接预检未通过：{bridge['message']}")
+            if self.state["running"]:
+                raise RuntimeError("上一组动作仍在执行")
+            if task_id not in {"cupping", "massage"} and not tracking:
+                raise RuntimeError("AprilTag 定位尚未稳定，禁止执行")
+            if not info["ready"]:
+                raise RuntimeError(f"{info['name']}尚未完成示教：" + "；".join(info["missing"][:3]))
+            message = f"{info['name']}关键帧流程已进入队列"
+            self.state.update({"running": True, "point": task_id, "phase": "task_queued",
+                               "message": message, "updated_at": time.time()})
+        threading.Thread(target=self._run_task_flow, args=(task_id,), daemon=True).start()
+        self._record_event("task_execute", True, message, point=task_id)
+        return self.get_state()
+
+    def _run_task_flow(self, task_id: str) -> None:
+        info = self.task_flow_info(task_id)
+        with self.lock:
+            self.state.update({"phase": "task_running", "message": f"正在执行{info['name']}关键帧流程",
+                               "updated_at": time.time()})
+        command = [
+            sys.executable, str(TASK_FLOW_RUNNER), "--task", task_id, "--execute",
+            "--bridge-url", self.bridge_url, "--speed-scale", str(self.speed_scale),
+        ]
+        try:
+            result = subprocess.run(command, capture_output=True, text=True, timeout=600, check=False)
+            output = (result.stdout if result.returncode == 0 else result.stderr).strip()
+            if result.returncode != 0:
+                raise RuntimeError(output or f"{info['name']}流程退出码 {result.returncode}")
+            phase, message, ok = "task_done", f"{info['name']}关键帧流程完成", True
+        except Exception as exc:  # noqa: BLE001
+            output = str(exc)
+            phase, message, ok = "error", f"{info['name']}执行失败：{exc}", False
+        with self.lock:
+            self.state.update({"running": False, "phase": phase, "message": message,
+                               "updated_at": time.time()})
+        self._record_event("task_done", ok, message, point=task_id, output=output)
 
     def get_state(self) -> dict:
         with self.lock:
@@ -1021,8 +1440,11 @@ class AcupointNode(Node):
 
     def estimate_transform(self, now: float) -> tuple[Optional[np.ndarray], list[int]]:
         ids = sorted(self.tracked)
-        panel_ids = (11, 1, 3, 19)
-        if all(marker_id in self.tracked for marker_id in panel_ids):
+        panel_ids = next(
+            (candidate for candidate in PANEL_MARKER_QUADS if all(marker_id in self.tracked for marker_id in candidate)),
+            None,
+        )
+        if panel_ids is not None:
             top_left, top_right, bottom_left, bottom_right = (
                 self.tracked[marker_id].center for marker_id in panel_ids
             )
@@ -1051,6 +1473,18 @@ class AcupointNode(Node):
                 transform = cv2.getPerspectiveTransform(source, fitted)
             else:
                 transform = None
+            if transform is not None and np.isfinite(transform).all():
+                self.last_transform = transform
+                self.last_transform_at = now
+                return transform, ids
+        # If one panel corner is missing but the neck tag is still visible,
+        # four non-collinear correspondences are enough for a full perspective
+        # transform.  Previously this common 4-tag state fell through because
+        # the fallback accepted exactly three tags only.
+        if len(ids) >= 4:
+            source = np.float32([MARKER_LAYOUT[i] for i in ids])
+            target = np.float32([self.tracked[i].center for i in ids])
+            transform, _mask = cv2.findHomography(source, target, method=0)
             if transform is not None and np.isfinite(transform).all():
                 self.last_transform = transform
                 self.last_transform_at = now
@@ -1117,7 +1551,7 @@ class AcupointNode(Node):
         cv2.polylines(annotated, polygon, True, (160, 220, 255), 2, cv2.LINE_AA)
 
         labels = []
-        for number, chinese, code, canonical, color, label_offset in ACUPOINTS:
+        for number, chinese, code, canonical, color, label_offset in DISPLAY_ACUPOINTS:
             x, y = self.project(transform, canonical)
             cv2.circle(annotated, (x, y), 17, (15, 20, 25), -1, cv2.LINE_AA)
             cv2.circle(annotated, (x, y), 13, color, 3, cv2.LINE_AA)
@@ -1151,7 +1585,7 @@ class AcupointNode(Node):
             annotated = self.draw_overlay(bgr, corners, ids, transform, tracked_ids)
             inferred = []
             if transform is not None:
-                for number, chinese, code, canonical, _color, _offset in ACUPOINTS:
+                for number, chinese, code, canonical, _color, _offset in DISPLAY_ACUPOINTS:
                     x, y = self.project(transform, canonical)
                     inferred.append({
                         "number": number,
@@ -1209,6 +1643,11 @@ def make_handler(shared: SharedView, actions: ActionController):
                 raise ValueError("请求内容为空或过大")
             return json.loads(self.rfile.read(length).decode("utf-8"))
 
+        @staticmethod
+        def require_motion_confirmation(request: dict) -> None:
+            if request.get("confirmed") is not True:
+                raise ValueError("运动请求未经过操作员确认，已拒绝执行")
+
         def do_OPTIONS(self) -> None:  # noqa: N802
             self.send_response(HTTPStatus.NO_CONTENT)
             self.send_header("Access-Control-Allow-Origin", "*")
@@ -1240,6 +1679,7 @@ def make_handler(shared: SharedView, actions: ActionController):
                 status["action"] = actions.get_state()
                 status["flows"] = actions.catalog()
                 status["needle_flow"] = actions.needle_flow_info()
+                status["task_flows"] = actions.task_flows_info()
                 payload = json.dumps(status, ensure_ascii=False).encode("utf-8")
                 self.send_bytes(payload, "application/json; charset=utf-8")
                 return
@@ -1315,7 +1755,98 @@ def make_handler(shared: SharedView, actions: ActionController):
             if self.path == "/api/execute":
                 try:
                     request = self.read_json()
+                    self.require_motion_confirmation(request)
                     payload = {"ok": True, "action": actions.request(str(request.get("point", "")))}
+                    status = HTTPStatus.ACCEPTED
+                except Exception as exc:  # noqa: BLE001
+                    payload = {"ok": False, "error": str(exc), "action": actions.get_state()}
+                    status = HTTPStatus.CONFLICT
+                self.send_bytes(json.dumps(payload, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8", status)
+                return
+            if self.path == "/api/task/add-step":
+                try:
+                    request = self.read_json()
+                    payload = {"ok": True, "action": actions.task_add_step(
+                        str(request.get("task", "")), str(request.get("stage", "")),
+                        str(request.get("type", "")), str(request.get("arm", ""))
+                    )}
+                    status = HTTPStatus.OK
+                except Exception as exc:  # noqa: BLE001
+                    payload = {"ok": False, "error": str(exc), "action": actions.get_state()}
+                    status = HTTPStatus.CONFLICT
+                self.send_bytes(json.dumps(payload, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8", status)
+                return
+            if self.path == "/api/task/record-step":
+                try:
+                    request = self.read_json()
+                    payload = {"ok": True, "action": actions.task_record_step(
+                        str(request.get("task", "")), str(request.get("stage", "")),
+                        str(request.get("step", ""))
+                    )}
+                    status = HTTPStatus.OK
+                except Exception as exc:  # noqa: BLE001
+                    payload = {"ok": False, "error": str(exc), "action": actions.get_state()}
+                    status = HTTPStatus.CONFLICT
+                self.send_bytes(json.dumps(payload, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8", status)
+                return
+            if self.path == "/api/task/execute-step":
+                try:
+                    request = self.read_json()
+                    self.require_motion_confirmation(request)
+                    payload = {"ok": True, "action": actions.request_task_pose(
+                        str(request.get("task", "")), str(request.get("stage", "")),
+                        str(request.get("step", ""))
+                    )}
+                    status = HTTPStatus.ACCEPTED
+                except Exception as exc:  # noqa: BLE001
+                    payload = {"ok": False, "error": str(exc), "action": actions.get_state()}
+                    status = HTTPStatus.CONFLICT
+                self.send_bytes(json.dumps(payload, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8", status)
+                return
+            if self.path == "/api/task/delete-step":
+                try:
+                    request = self.read_json()
+                    payload = {"ok": True, "action": actions.task_delete_step(
+                        str(request.get("task", "")), str(request.get("stage", "")),
+                        str(request.get("step", ""))
+                    )}
+                    status = HTTPStatus.OK
+                except Exception as exc:  # noqa: BLE001
+                    payload = {"ok": False, "error": str(exc), "action": actions.get_state()}
+                    status = HTTPStatus.CONFLICT
+                self.send_bytes(json.dumps(payload, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8", status)
+                return
+            if self.path == "/api/task/move-step":
+                try:
+                    request = self.read_json()
+                    payload = {"ok": True, "action": actions.task_move_step(
+                        str(request.get("task", "")), str(request.get("stage", "")),
+                        str(request.get("step", "")), str(request.get("direction", ""))
+                    )}
+                    status = HTTPStatus.OK
+                except Exception as exc:  # noqa: BLE001
+                    payload = {"ok": False, "error": str(exc), "action": actions.get_state()}
+                    status = HTTPStatus.CONFLICT
+                self.send_bytes(json.dumps(payload, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8", status)
+                return
+            if self.path == "/api/task/execute":
+                try:
+                    request = self.read_json()
+                    self.require_motion_confirmation(request)
+                    payload = {"ok": True, "action": actions.request_task_flow(str(request.get("task", "")))}
+                    status = HTTPStatus.ACCEPTED
+                except Exception as exc:  # noqa: BLE001
+                    payload = {"ok": False, "error": str(exc), "action": actions.get_state()}
+                    status = HTTPStatus.CONFLICT
+                self.send_bytes(json.dumps(payload, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8", status)
+                return
+            if self.path == "/api/needle/execute-step":
+                try:
+                    request = self.read_json()
+                    self.require_motion_confirmation(request)
+                    payload = {"ok": True, "action": actions.request_task_pose(
+                        "needle", str(request.get("stage", "")), str(request.get("step", ""))
+                    )}
                     status = HTTPStatus.ACCEPTED
                 except Exception as exc:  # noqa: BLE001
                     payload = {"ok": False, "error": str(exc), "action": actions.get_state()}
@@ -1373,7 +1904,8 @@ def make_handler(shared: SharedView, actions: ActionController):
                 return
             if self.path == "/api/needle/execute":
                 try:
-                    self.read_json()
+                    request = self.read_json()
+                    self.require_motion_confirmation(request)
                     payload = {"ok": True, "action": actions.request_needle()}
                     status = HTTPStatus.ACCEPTED
                 except Exception as exc:  # noqa: BLE001
@@ -1384,6 +1916,7 @@ def make_handler(shared: SharedView, actions: ActionController):
             if self.path == "/api/return":
                 try:
                     request = self.read_json()
+                    self.require_motion_confirmation(request)
                     payload = {"ok": True, "action": actions.request(
                         str(request.get("point", "")), reverse=True, round_trip=False
                     )}
@@ -1396,6 +1929,15 @@ def make_handler(shared: SharedView, actions: ActionController):
             if self.path == "/api/emergency-stop":
                 try:
                     payload = {"ok": True, "action": actions.emergency_stop()}
+                    status = HTTPStatus.OK
+                except Exception as exc:  # noqa: BLE001
+                    payload = {"ok": False, "error": str(exc), "action": actions.get_state()}
+                    status = HTTPStatus.SERVICE_UNAVAILABLE
+                self.send_bytes(json.dumps(payload, ensure_ascii=False).encode("utf-8"), "application/json; charset=utf-8", status)
+                return
+            if self.path == "/api/emergency-release":
+                try:
+                    payload = {"ok": True, "action": actions.emergency_release()}
                     status = HTTPStatus.OK
                 except Exception as exc:  # noqa: BLE001
                     payload = {"ok": False, "error": str(exc), "action": actions.get_state()}

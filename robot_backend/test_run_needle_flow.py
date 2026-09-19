@@ -13,7 +13,7 @@ def complete_flow():
         ]
         if stage_id == "take_large":
             steps.append({"id": "pinch", "type": "pinch"})
-        if stage_id == "retrieve_small":
+        if stage_id == "insert_small":
             steps.append({"id": "release", "type": "release"})
         stage = {"id": stage_id, "label": stage_id, "steps": steps}
         if stage_id == "wait_5s":
@@ -54,22 +54,34 @@ class NeedleFlowTests(unittest.TestCase):
         flow = copy.deepcopy(complete_flow())
         commands = []
         sleeps = []
+        events = []
 
         def fake_request(_base, path, body=None, timeout=45.0):
             del timeout
             if path == "/health":
                 return {"ok": True}
             commands.append((path, body))
+            events.append((path, body))
             return {"ok": True}
 
+        def fake_sleep(seconds):
+            sleeps.append(seconds)
+            events.append(("sleep", seconds))
+
         with patch.object(needle_runner, "bridge_request", side_effect=fake_request), \
-                patch.object(needle_runner.time, "sleep", side_effect=sleeps.append):
+                patch.object(needle_runner.time, "sleep", side_effect=fake_sleep):
             needle_runner.execute(flow, "http://127.0.0.1:8766")
 
         move_values = [body["joints"][0] for path, body in commands if path == "/move_joint"]
-        self.assertEqual([1.0, 2.0, 3.0, 4.0, 6.0, 7.0], move_values)
+        self.assertEqual([1.0, 2.0, 3.0, 4.0], move_values)
         hand_values = [body["positions"] for path, body in commands if path == "/hand"]
         self.assertEqual([needle_runner.GESTURES["pinch"], needle_runner.GESTURES["release"]], hand_values)
+        self.assertEqual([0, 96, 0, 255, 255, 255], hand_values[0])
+        self.assertEqual([255, 71, 255, 255, 255, 255], hand_values[1])
+        for index, (kind, _) in enumerate(events):
+            if kind == "/hand":
+                self.assertEqual(("sleep", 1.5), events[index - 1])
+                self.assertEqual(("sleep", 1.5), events[index + 1])
         first_move = next(body for path, body in commands if path == "/move_joint")
         self.assertEqual(1.5, first_move["speed"])
         self.assertEqual(1.0, first_move["acceleration"])

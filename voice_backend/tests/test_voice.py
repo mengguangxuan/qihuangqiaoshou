@@ -3,6 +3,7 @@ from pathlib import Path
 import sys
 import threading
 import unittest
+from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 from http.server import ThreadingHTTPServer
@@ -40,13 +41,31 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(result["selected_point"], "SI11-L")
         self.assertIsNone(result["proposal"])
 
-    def test_model_cannot_trigger_robot_from_ordinary_question(self):
-        self.provider.answer.update(intent="robot", robot_point="GV14")
+    def test_model_semantics_decide_robot_proposal(self):
         self.assertIsNone(self.service.chat({"text": "讲讲大椎"})["proposal"])
+        self.provider.answer.update(intent="robot", robot_point="GV14")
         result = self.service.chat({"text": "让机械臂指向大椎"})
         self.assertTrue(result["requires_confirmation"])
         self.assertEqual(result["proposal"]["type"], "execute_acupoint")
-        self.assertEqual([c[0] for c in self.provider.calls], ["responses", "responses"])
+        direct = self.service.chat({"text": "指一下大椎"})
+        self.assertEqual(direct["proposal"]["type"], "execute_acupoint")
+        self.assertEqual([c[0] for c in self.provider.calls], ["responses", "responses", "responses"])
+
+    def test_start_needle_stays_a_confirmed_proposal(self):
+        self.provider.answer.update(intent="needle", robot_point="")
+        result = self.service.chat({"text": "现在给假人做一下针灸吧"})
+        self.assertTrue(result["requires_confirmation"])
+        self.assertEqual(result["proposal"], {"type": "execute_needle", "label": "无针点穴五阶段演示"})
+        self.provider.answer.update(intent="knowledge")
+        self.assertIsNone(self.service.chat({"text": "介绍一下针灸文化"})["proposal"])
+
+    def test_other_task_intents_are_fixed_confirmed_actions(self):
+        expected = {"tap": "捶背", "massage": "筋膜枪按摩", "cupping": "火罐"}
+        for intent, label in expected.items():
+            self.provider.answer.update(intent=intent, robot_point="")
+            result = self.service.chat({"text": f"请开始{label}"})
+            self.assertEqual(result["proposal"], {"type": "execute_task", "task": intent, "label": label})
+            self.assertTrue(result["requires_confirmation"])
 
     def test_invalid_model_point_is_not_a_command(self):
         self.provider.answer.update(intent="robot", robot_point="arbitrary", selected_point="arbitrary", source_ids=["invalid"])
@@ -56,8 +75,8 @@ class ServiceTests(unittest.TestCase):
         self.assertEqual(result["sources"], [])
 
     def test_emergency_stays_a_proposal(self):
-        self.provider.answer.update(intent="emergency")
         self.assertIsNone(self.service.chat({"text": "大椎在哪"})["proposal"])
+        self.provider.answer.update(intent="emergency")
         self.assertEqual(self.service.chat({"text": "紧急停止"})["proposal"]["type"], "emergency_stop")
 
     def test_transcription_uses_audio_and_vocabulary(self):
@@ -137,6 +156,22 @@ class HttpTests(unittest.TestCase):
         request = Request(self.base + "/api/voice/chat", data=json.dumps({"text": "看看天宗"}).encode(), headers={"Content-Type": "application/json"})
         with urlopen(request) as response:
             self.assertEqual(json.load(response)["selected_point"], "SI11-L")
+
+    def test_merged_robot_controls_reach_proxy_without_hardware(self):
+        paths = ["/api/emergency-release", "/api/needle/execute-step",
+                 "/api/task/add-step", "/api/task/record-step", "/api/task/execute-step",
+                 "/api/task/delete-step", "/api/task/move-step", "/api/task/execute"]
+        received = []
+        body = b'{"task":"massage","stage":"massage","step":"test"}'
+        def fake_proxy(handler, path, data=None):
+            received.append((path, data))
+            handler.send(202, {"ok": True})
+        with patch.object(self.server.RequestHandlerClass, "proxy_robot", fake_proxy):
+            for path in paths:
+                request = Request(self.base + path, data=body, headers={"Content-Type": "application/json"})
+                with urlopen(request, timeout=3) as response:
+                    self.assertEqual(response.status, 202)
+        self.assertEqual([(path, body) for path in paths], received)
 
     def test_invalid_json_rejected(self):
         request = Request(self.base + "/api/voice/chat", data=b"{", headers={"Content-Type": "application/json"})

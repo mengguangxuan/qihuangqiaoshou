@@ -1,0 +1,63 @@
+{
+  "schema": "fivefinger.task-flow/v1",
+  "id": "tap",
+  "name": "捶背舒展",
+  "speed": 1.5,
+  "acceleration": 1.0,
+  "stages": [
+    {
+      "id": "prepare",
+      "label": "准备与接近",
+      "steps": [
+        {
+          "id": "prepare-1789627334175403077",
+          "type": "pose",
+          "arm": "left",
+          "joints": [
+            0.259556,
+            0.196078,
+            -0.392614,
+            -2.024415,
+            1.166858,
+            -0.401503,
+            0.276379
+          ],
+          "hold": 0.0,
+          "feedback_version": 1,
+          "recorded_at": "2026-09-17 14:42:34",
+          "recorded_from": "http://127.0.0.1:8766/state",
+          "label": "准备与接近 · 左臂姿态 1"
+        },
+        {
+          "id": "prepare-1789627367508308432",
+          "type": "pose",
+          "arm": "right",
+          "joints": [
+            -0.44358,
+            -0.068818,
+            0.344397,
+            -1.986267,
+            -1.474174,
+            0.045587,
+            -0.158504
+          ],
+          "hold": 0.0,
+          "feedback_version": 1,
+          "recorded_at": "2026-09-17 14:42:47",
+          "recorded_from": "http://127.0.0.1:8766/state",
+          "label": "准备与接近 · 右臂姿态 2"
+        }
+      ]
+    },
+    {
+      "id": "tap",
+      "label": "捶背舒展动作",
+      "steps": []
+    },
+    {
+      "id": "return",
+      "label": "撤离与复位",
+      "steps": []
+    }
+  ]
+}

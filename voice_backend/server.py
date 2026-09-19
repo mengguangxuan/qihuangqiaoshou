@@ -26,6 +26,11 @@ STYLES = {"brief": "约80至140个中文字，先回答重点。", "detail": "�
 DEFAULTS = {"OPENAI_API_KEY": "", "OPENAI_CHAT_MODEL": "gpt-4.1-mini", "OPENAI_TRANSCRIBE_MODEL": "gpt-4o-transcribe", "OPENAI_TTS_MODEL": "gpt-4o-mini-tts", "OPENAI_TTS_VOICE": "coral"}
 DEFAULTS.update(DOUBAO_TTS_API_KEY="", DOUBAO_TTS_VOICE="zh_female_vv_uranus_bigtts", DOUBAO_TTS_RESOURCE_ID="seed-tts-2.0")
 ROBOT_ROUTES = {"/status.json", "/stream.mjpg", "/snapshot", "/api/acupoints", "/api/preflight", "/api/teach", "/api/delete-keyframe", "/api/execute", "/api/return", "/api/emergency-stop", "/api/robot-enable", "/api/robot-disable", "/api/needle/add-step", "/api/needle/record-step", "/api/needle/delete-step", "/api/needle/move-step", "/api/needle/execute"}
+ROBOT_ROUTES.update({
+    "/api/emergency-release", "/api/needle/execute-step",
+    "/api/task/add-step", "/api/task/record-step", "/api/task/execute-step",
+    "/api/task/delete-step", "/api/task/move-step", "/api/task/execute",
+})
 
 
 class VoiceError(Exception):
@@ -149,14 +154,18 @@ class VoiceService:
             "资料是项目提供的科普草稿，未经逐条权威核验。可以解释这些资料，但不要声称来自已核实古籍、"
             "编造出处、疗效或诊疗建议。不确定时坦诚说明。不得提供针刺深度、用药处方等个体治疗指导。"
             "selected_point仅在用户希望查看/讲解另一个明确穴位时填写其ID，否则为空字符串。"
-            "普通的'指出/看看穴位'只切换网页。仅当本轮明确要求机器人或机械臂动作时，intent为robot；"
+            "你必须根据整句话的语义判断用户是否真的在请求机器人动作，不要依赖固定关键词或固定句式。"
+            "普通的穴位介绍、询问位置、询问某流程能否执行、否定或取消动作都属于knowledge。"
+            "用户明确请求机器人现在指向某个穴位时，intent为robot；"
             "仅支持五个背部演示点，不支持其它运动。无法确定左右时先询问，robot_point留空。"
+            "用户明确请求现在开始、执行或做针灸/无针点穴时，intent为needle；这表示运行无针点穴五阶段程序。"
+            "用户明确请求现在开始捶背时intent为tap；开始筋膜枪按摩时intent为massage；开始火罐任务时intent为cupping。"
             "急停请求intent为emergency，提醒使用实体急停；你没有执行过任何动作。"
             "所有动作只能是待确认建议，绝不能声称已经运动。其余intent为knowledge。"
             "source_ids只填写实际使用的资料ID，若回答不依赖所给资料可为空数组。"
         )
         messages.append({"role": "user", "content": json.dumps({"question": text, "page": {"point": point_id, "mode": mode, "audience": context.get("audience", "mannequin")}, "reference_material": KNOWLEDGE}, ensure_ascii=False)})
-        schema = {"type": "object", "properties": {"reply": {"type": "string"}, "selected_point": {"type": "string", "enum": ["", *POINTS]}, "intent": {"type": "string", "enum": ["knowledge", "robot", "emergency"]}, "robot_point": {"type": "string", "enum": ["", *sorted(ROBOT_POINTS)]}, "source_ids": {"type": "array", "items": {"type": "string", "enum": list(POINTS)}}}, "required": ["reply", "selected_point", "intent", "robot_point", "source_ids"], "additionalProperties": False}
+        schema = {"type": "object", "properties": {"reply": {"type": "string"}, "selected_point": {"type": "string", "enum": ["", *POINTS]}, "intent": {"type": "string", "enum": ["knowledge", "robot", "needle", "tap", "massage", "cupping", "emergency"]}, "robot_point": {"type": "string", "enum": ["", *sorted(ROBOT_POINTS)]}, "source_ids": {"type": "array", "items": {"type": "string", "enum": list(POINTS)}}}, "required": ["reply", "selected_point", "intent", "robot_point", "source_ids"], "additionalProperties": False}
         started = time.monotonic()
         cfg = self.config_loader()
         data, _ = self.provider("responses", {"model": cfg["OPENAI_CHAT_MODEL"], "store": False, "instructions": instructions, "input": messages, "max_output_tokens": 1000, "text": {"format": {"type": "json_schema", "name": "qihuang_answer", "strict": True, "schema": schema}}}, cfg)
@@ -170,9 +179,15 @@ class VoiceService:
         except (ValueError, TypeError, AttributeError, VoiceError):
             raise VoiceError("模型没有返回完整回答，请缩短问题后重试。", "invalid_response", 502) from None
         proposal = None
-        if result.get("intent") == "emergency" and any(word in text for word in ("急停", "紧急停止", "停止机械臂", "机械臂停下")):
+        intent = result.get("intent")
+        if intent == "emergency":
             proposal = {"type": "emergency_stop", "label": "紧急停止"}
-        elif result.get("intent") == "robot" and result.get("robot_point") in ROBOT_POINTS and any(word in text for word in ("机械臂", "机器人")):
+        elif intent == "needle":
+            proposal = {"type": "execute_needle", "label": "无针点穴五阶段演示"}
+        elif intent in {"tap", "massage", "cupping"}:
+            task_labels = {"tap": "捶背", "massage": "筋膜枪按摩", "cupping": "火罐"}
+            proposal = {"type": "execute_task", "task": intent, "label": task_labels[intent]}
+        elif intent == "robot" and result.get("robot_point") in ROBOT_POINTS:
             code = result["robot_point"]
             proposal = {"type": "execute_acupoint", "point": code, "label": POINTS[code]["name"]}
         selected = result.get("selected_point")

@@ -1,6 +1,7 @@
 param([int]$Port = 8010)
 $ErrorActionPreference = 'Stop'
-$python = (Get-Command python -ErrorAction Stop).Source
+$workplacePython = Join-Path $env:USERPROFILE '.conda\envs\workplace\python.exe'
+$python = if (Test-Path -LiteralPath $workplacePython) { $workplacePython } else { (Get-Command python -ErrorAction Stop).Source }
 $serverFile = Join-Path $PSScriptRoot 'voice_backend\server.py'
 $envFile = Join-Path $PSScriptRoot '.env'
 if (-not (Test-Path -LiteralPath $envFile)) {
@@ -17,7 +18,7 @@ $versionOk = & $python -c 'import sys; print(int(sys.version_info >= (3, 11)))'
 if ($versionOk -ne '1') { throw 'Python 3.11 or newer is required.' }
 $dataDir = Join-Path $PSScriptRoot 'data'
 New-Item -ItemType Directory -Path $dataDir -Force | Out-Null
-$serverArgs = @('-u', ('"' + $serverFile + '"'), '--port', "$Port")
+$serverArgs = @('-X', 'utf8', '-u', ('"' + $serverFile + '"'), '--port', "$Port")
 $process = Start-Process -FilePath $python -ArgumentList $serverArgs -WindowStyle Hidden -PassThru `
     -RedirectStandardOutput (Join-Path $dataDir 'voice.stdout.log') `
     -RedirectStandardError (Join-Path $dataDir 'voice.stderr.log')

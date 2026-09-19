@@ -406,6 +406,7 @@
     .robot-safety-actions { margin-top:9px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
     .robot-safety-actions button { min-height:41px; padding:0 13px; border:1px solid rgba(23,51,47,.18); border-radius:4px; color:var(--ink); background:#fffaf0; cursor:pointer; font-weight:800; }
     .robot-safety-actions .emergency { min-width:105px; color:#fff; border-color:#76291f; background:#76291f; }
+    .robot-safety-actions .emergency-release { min-width:105px; color:#fff; border-color:#356a54; background:#356a54; }
     .robot-safety-actions button:disabled { opacity:.48; cursor:not-allowed; }
     .teach-panel { margin-top:15px; padding:16px; border:1px solid rgba(159,52,39,.24); background:rgba(245,235,212,.72); }
     .teach-head { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
@@ -711,7 +712,7 @@
           <section class="connection-panel" aria-labelledby="connectionTitle">
             <div class="connection-head"><strong id="connectionTitle">真机连接检查</strong><span>连接检查不会触发运动</span></div>
             <div class="connection-grid"><div class="connection-item" id="checkLocal">本机穴位服务</div><div class="connection-item" id="checkVision">AprilTag 定位</div><div class="connection-item" id="checkBridge">8766 动作桥</div><div class="connection-item" id="checkArm">对应手臂关节与 Arm_Tip</div></div>
-            <div class="robot-safety-actions"><button id="robotPreflight" type="button">检查机器人连接</button><button class="robot-arm-toggle" data-robot-arm="left" data-robot-enabled="true" type="button" disabled>左臂使能</button><button class="robot-arm-toggle" data-robot-arm="left" data-robot-enabled="false" type="button" disabled>左臂掉使能</button><button class="robot-arm-toggle" data-robot-arm="right" data-robot-enabled="true" type="button" disabled>右臂使能</button><button class="robot-arm-toggle" data-robot-arm="right" data-robot-enabled="false" type="button" disabled>右臂掉使能</button><button class="emergency" id="robotEmergency" type="button" disabled>双臂紧急停止</button></div>
+            <div class="robot-safety-actions"><button id="robotPreflight" type="button">检查机器人连接</button><button class="robot-arm-toggle" data-robot-arm="left" data-robot-enabled="true" type="button" disabled>左臂使能</button><button class="robot-arm-toggle" data-robot-arm="left" data-robot-enabled="false" type="button" disabled>左臂掉使能</button><button class="robot-arm-toggle" data-robot-arm="right" data-robot-enabled="true" type="button" disabled>右臂使能</button><button class="robot-arm-toggle" data-robot-arm="right" data-robot-enabled="false" type="button" disabled>右臂掉使能</button><button class="emergency" id="robotEmergency" type="button" disabled>双臂紧急停止</button><button class="emergency-release" id="robotEmergencyRelease" type="button" disabled>取消双臂急停</button></div>
           </section>
           <section class="teach-panel" aria-labelledby="teachTitle">
             <div class="teach-head"><strong id="teachTitle">关键帧示教</strong><span id="teachArmLabel">当前所选穴位</span></div>
@@ -733,8 +734,8 @@
     </section>
     <section class="robot-console book-leaf" id="needleConsole" hidden>
       <div class="robot-console-head">
-        <div><span class="eyebrow">无针点穴 · 左臂七阶段</span><h2>按阶段组合姿态与手部动作</h2></div>
-        <p>所有阶段固定使用左臂。每个阶段可按顺序加入任意数量的姿态关键帧，也可插入固定的“捏”和“放”；完成示教后可一键连续执行七个阶段。</p>
+        <div><span class="eyebrow">无针点穴 · 左臂五阶段</span><h2>按阶段组合姿态与手部动作</h2></div>
+      <p>所有阶段固定使用左臂。每个阶段可按顺序加入任意数量的姿态关键帧，也可插入固定的“捏”和“放”；完成示教后可一键连续执行五个阶段。</p>
       </div>
       <div class="needle-console-grid">
         <aside class="needle-sidebar">
@@ -745,16 +746,55 @@
             <button class="robot-arm-toggle" data-robot-arm="left" data-robot-enabled="true" type="button" disabled>左臂使能</button>
             <button class="robot-arm-toggle" data-robot-arm="left" data-robot-enabled="false" type="button" disabled>左臂掉使能</button>
             <button class="emergency" id="needleEmergency" type="button" disabled>双臂紧急停止</button>
+            <button class="emergency-release" id="needleEmergencyRelease" type="button" disabled>取消双臂急停</button>
           </div>
           <div class="gesture-spec" aria-label="固定左手动作">
-            <article><strong>捏</strong><code>0 71 0 255 255 255</code></article>
+            <article><strong>捏</strong><code>0 96 0 255 255 255</code></article>
             <article><strong>放</strong><code>255 71 255 255 255 255</code></article>
           </div>
-          <div class="teach-action-row"><button class="teach-execute" id="needleExecute" type="button" disabled>一键执行七阶段演示</button></div>
+          <div class="teach-action-row"><button class="teach-execute" id="needleExecute" type="button" disabled>一键执行五阶段演示</button></div>
         </aside>
         <div class="needle-editor">
-          <p class="needle-editor-note">“记录新姿态”会立即读取左臂当前 7 个关节角并追加到该阶段；“捏/放”直接追加固定手势。可用上下箭头调整阶段内部的执行顺序。</p>
-          <div class="needle-stages" id="needleStageList"><div class="needle-empty">连接本机服务后显示七阶段编辑器。</div></div>
+          <p class="needle-editor-note">“记录新姿态”会立即读取左臂当前 7 个关节角并追加到该阶段；“捏/放”直接追加固定手势，每次手势执行前、完成后各停留 1.5 秒。可用上下箭头调整阶段内部的执行顺序。</p>
+          <div class="needle-stages" id="needleStageList"><div class="needle-empty">连接本机服务后显示五阶段编辑器。</div></div>
+        </div>
+      </div>
+    </section>
+    <section class="robot-console book-leaf" id="taskFlowConsole" hidden>
+      <div class="robot-console-head">
+        <div><span class="eyebrow" id="taskFlowEyebrow">任务关键帧 · 真机演示</span><h2 id="taskFlowTitle">独立关键帧流程</h2></div>
+        <p>每个任务单独保存流程。先选择左臂或右臂，再把当前七关节位置记录为关键帧；也可插入当前任务的固定手势并调整执行顺序。未完成示教时不能执行。</p>
+      </div>
+      <div class="needle-console-grid">
+        <aside class="needle-sidebar">
+          <div class="teach-head"><strong>流程状态</strong><span id="taskFlowCode">TASK</span></div>
+          <div class="needle-status" id="taskFlowStatus">正在读取任务流程……</div>
+          <div class="robot-safety-actions">
+            <button id="taskFlowPreflight" type="button">检查机器人连接</button>
+            <button class="robot-arm-toggle" data-robot-arm="left" data-robot-enabled="true" type="button" disabled>左臂使能</button>
+            <button class="robot-arm-toggle" data-robot-arm="left" data-robot-enabled="false" type="button" disabled>左臂掉使能</button>
+            <button class="robot-arm-toggle" data-robot-arm="right" data-robot-enabled="true" type="button" disabled>右臂使能</button>
+            <button class="robot-arm-toggle" data-robot-arm="right" data-robot-enabled="false" type="button" disabled>右臂掉使能</button>
+            <button class="emergency" id="taskFlowEmergency" type="button" disabled>双臂紧急停止</button>
+            <button class="emergency-release" id="taskFlowEmergencyRelease" type="button" disabled>取消双臂急停</button>
+          </div>
+          <label class="needle-editor-note" for="taskFlowArm">新关键帧使用的手臂</label>
+          <select id="taskFlowArm"><option value="left">左臂 / 左手</option><option value="right">右臂 / 右手</option></select>
+          <div class="gesture-spec" aria-label="固定手部动作">
+            <article><strong>捏</strong><code>0 96 0 255 255 255</code></article>
+            <article><strong>放</strong><code>255 71 255 255 255 255</code></article>
+            <article class="tap-only-gesture" hidden><strong>左右手握拳准备</strong><code>255 255 0 0 0 0</code></article>
+            <article class="tap-only-gesture" hidden><strong>左右手握拳</strong><code>0 0 0 0 0 0</code></article>
+            <article class="massage-only-gesture" hidden><strong>开始前左右手初始化</strong><code>255 255 255 255 255 255</code></article>
+            <article class="massage-only-gesture" hidden><strong>右手抓筋膜枪</strong><code>0 0 0 0 0 0</code></article>
+            <article class="massage-only-gesture" hidden><strong>左手开枪</strong><code>0 0 255 0 0 0</code></article>
+            <article class="cupping-only-gesture" hidden><strong>左右手抓</strong><code>155 0 119 119 112 157</code></article>
+          </div>
+          <div class="teach-action-row"><button class="teach-execute" id="taskFlowExecute" type="button" disabled>一键执行关键帧流程</button></div>
+        </aside>
+        <div class="needle-editor">
+          <p class="needle-editor-note">姿态按此处顺序逐帧执行。筋膜枪一键执行全部四阶段的已录步骤，仅按摩阶段每个位置到位后停留 3 秒；结束后停在最后录制位置。左右臂不会自动使能或掉使能。</p>
+          <div class="needle-stages" id="taskFlowStageList"><div class="needle-empty">连接本机服务后显示关键帧编辑器。</div></div>
         </div>
       </div>
     </section>
@@ -781,24 +821,24 @@
 
     const modes = {
       guide: { index: '卷一 · 识穴', title: '从十个代表性穴位开始', description: '对照真人经络古图与交互模型，点击穴位即可了解名称、位置与文化渊源。', stage: '穴位文化导览', primary: '10', primaryLabel: '正反面代表穴位', secondary: '3 问', secondaryLabel: '名称、传统与位置', status: '穴位导览', action: '软头指示笔悬停指引', play: '循序寻穴' },
-      needle: { index: '卷二 · 点穴', title: '左臂完成七阶段无针点穴演示', description: '按拿大针、刺大针、拿小针、刺小针、等待、取回大针和取回小针的顺序组织关键帧。', stage: '无针点穴七阶段', primary: '7 阶段', primaryLabel: '可编辑关键帧序列', secondary: '2 手势', secondaryLabel: '固定捏与放', status: '无针点穴', action: '左臂姿态与灵巧手组合演示', play: '浏览七阶段' },
+      needle: { index: '卷二 · 点穴', title: '左臂完成五阶段无针点穴演示', description: '按拿大针、刺大针、拿小针、刺小针和等待 5 秒的顺序组织关键帧，结束后不再取回。', stage: '无针点穴五阶段', primary: '5 阶段', primaryLabel: '可编辑关键帧序列', secondary: '2 手势', secondaryLabel: '固定捏与放', status: '无针点穴', action: '左臂姿态与灵巧手组合演示', play: '浏览五阶段' },
       tap: { index: '卷三 · 舒展', title: '用肩背区域理解捶背范围', description: '左右肩背区域交替亮起，呈现舒缓动作的范围、方向与节奏。', stage: '双手捶背舒展', primary: '2 区', primaryLabel: '左右肩背范围', secondary: '低速', secondaryLabel: '预设柔和节奏', status: '肩背舒展', action: '双手低速交替轻触', play: '开始体验' },
-      massage: { index: '卷四 · 循按', title: '看见按摩工具行走的路线', description: '以动态路径呈现起点、方向、当前进度与安全退出。', stage: '按摩轨迹体验', primary: '2 条', primaryLabel: '左右肩背短路径', secondary: '可视', secondaryLabel: '方向与进度同步', status: '循按轨迹', action: '按摩工具沿短路径移动', play: '开始体验' },
-      cupping: { index: '卷五 · 罐法', title: '认识无火罐的安全放置过程', description: '圆形靶位对应训练罐位置，依次呈现抓取、放置、确认与取回。', stage: '无火罐法体验', primary: '3 位', primaryLabel: '训练罐放置位置', secondary: '闭环', secondaryLabel: '放置确认与取回', status: '无火罐法', action: '抓取、放置、确认、取回', play: '开始体验' }
+      massage: { index: '卷四 · 循按', title: '筋膜枪四阶段一键执行', description: '保留拿取、开启、按摩、关闭的全部已录步骤，按摩阶段每个位置到位后停留 3 秒。', stage: '筋膜枪完整流程', primary: '4 阶段', primaryLabel: '全部已录步骤', secondary: '3 秒', secondaryLabel: '每个按摩位置停留', status: '筋膜枪按摩', action: '按顺序播放全部位姿', play: '查看完整流程' },
+      cupping: { index: '卷五 · 罐法', title: '无火罐法单阶段演示', description: '只执行已经示教完成的“抓取训练罐”阶段，不再执行放置确认、取回或复位。', stage: '无火罐法抓取流程', primary: '1 阶段', primaryLabel: '抓取训练罐', secondary: '一键', secondaryLabel: '按关键帧顺序执行', status: '无火罐法', action: '仅执行抓取训练罐阶段', play: '查看抓取流程' }
     };
 
     const genericTargets = {
-      needle: { name: '七阶段无针点穴', code: '左臂 · 姿态与手势编排', description: '每个阶段可记录多个左臂姿态，并在任意位置加入固定“捏”或“放”动作。', source: '左臂当前 7 关节状态', meaning: '关键帧按页面中的顺序执行，阶段之间自动衔接。', tradition: '本栏目为假人器械动作演示，不进行真人针刺。' },
+      needle: { name: '五阶段无针点穴', code: '左臂 · 姿态与手势编排', description: '每个阶段可记录多个左臂姿态，并在任意位置加入固定“捏”或“放”动作。', source: '左臂当前 7 关节状态', meaning: '关键帧按页面中的顺序执行，等待结束即完成，不执行取回动作。', tradition: '本栏目为假人器械动作演示，不进行真人针刺。' },
       tap: { name: '左右肩背区', code: '肩背区域 · 低速轻触', description: '半透明区域表示低速捶背范围，避开头部与脊柱中线。', source: '背部归一化区域', meaning: '区域不是单一穴位，而是一段连续舒展范围。', tradition: '这一部分以动作安全与身体区域认知为主，不对应特定治疗主张。' },
-      massage: { name: '肩背短路径', code: '循按路径 · 左右双线', description: '两条预设路线呈现按摩工具的移动方向与进度，结束后回到安全位置。', source: '背部归一化路径', meaning: '路径把连续动作转化为可观察的起点、方向和终点。', tradition: '体验强调舒缓动作的节奏与边界，不替代康复或医疗操作。' },
-      cupping: { name: '训练罐位置', code: '罐法位置 · 三处参照', description: '三个圆形目标对应无火训练罐的放置、确认与取回次序。', source: '背部预设放置位', meaning: '圆形标记对应训练罐口的落位范围。', tradition: '这里介绍罐具文化与工程抓放流程，不使用明火，也不宣称治疗效果。' }
+      massage: { name: '筋膜枪按摩', code: '全部四阶段 · 按摩位置停留 3 秒', description: '一键按录制顺序执行全部四阶段，按摩阶段各位置停留 3 秒。', source: '全部已录制姿态', meaning: '执行已编排步骤，完成后停在最后录制位置。', tradition: '体验强调工具操作流程与动作安全，不替代康复或医疗操作。' },
+      cupping: { name: '训练罐抓取', code: '无火罐法 · 单阶段关键帧', description: '页面只保留“抓取训练罐”阶段，并按已记录的左右臂姿态与手势顺序一键执行。', source: '双臂当前示教关键帧', meaning: '取消放置确认、取回与复位，只演示训练罐抓取动作。', tradition: '这里介绍罐具文化与工程抓取流程，不使用明火，也不宣称治疗效果。' }
     };
 
     const modeSteps = {
-      needle: ['拿大针', '刺大针', '拿小针', '刺小针', '等待 5 秒', '拿回大针', '拿回小针'],
+      needle: ['拿大针', '刺大针', '拿小针', '刺小针', '等待 5 秒'],
       tap: ['左肩背区接近', '轻触确认', '左右交替动作', '停止并抬升', '返回安全位'],
-      massage: ['工具抓持确认', '移动至安全高度', '左侧路径', '右侧路径', '关闭并归位'],
-      cupping: ['识别训练罐', '调整罐口方向', '放置目标位', '视觉稳定确认', '取回并归位']
+      massage: ['拿取筋膜枪', '开启筋膜枪', '按摩 · 每位置停留 3 秒', '关闭筋膜枪'],
+      cupping: ['抓取训练罐']
     };
 
     let currentMode = 'guide';
@@ -840,6 +880,7 @@
       document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.mode === currentMode));
       $('robotConsole').hidden = currentMode !== 'guide';
       $('needleConsole').hidden = currentMode !== 'needle';
+      $('taskFlowConsole').hidden = !['tap','massage','cupping'].includes(currentMode);
       document.querySelectorAll('.view-btn').forEach(btn => {
         const unavailable = backOnlyMode && btn.dataset.view === 'front';
         btn.disabled = unavailable;
@@ -953,6 +994,8 @@
       : 'http://127.0.0.1:8008';
     let localRobotConnected = false;
     let localRobotStatus = null;
+    let autoPreflightRunning = false;
+    let lastAutoPreflightAt = 0;
 
     function formatJoints(joints) {
       return Array.isArray(joints) ? joints.map(value => Number(value).toFixed(6)).join(', ') : '未记录';
@@ -991,11 +1034,12 @@
         !status.tracking ? '等待 AprilTag 定位稳定' : '';
       const ready = Boolean(flow.ready && bridge.ok && action.enabled && armEnabled.left && status.tracking && !action.running);
       $('needleExecute').disabled = !ready;
-      $('needleExecute').textContent = action.running ? '动作或示教进行中' : gateText || '一键执行七阶段演示';
-      const readinessText = flow.ready ? '七阶段已完成示教' : `还需完善 ${flow.missing?.length || 0} 项`;
+      $('needleExecute').textContent = action.running ? '动作或示教进行中' : gateText || '一键执行五阶段演示';
+      const readinessText = flow.ready ? '五阶段已完成示教' : `还需完善 ${flow.missing?.length || 0} 项`;
       $('needleStatus').textContent = `${readinessText}；共 ${flow.total_steps} 个步骤、${flow.recorded_poses} 个姿态；速度 ${flow.speed}，加速度 ${flow.acceleration}；左臂${armEnabled.left == null ? '使能状态未确认' : armEnabled.left ? '已使能' : '已掉使能'}；${action.message || ''}`;
       $('needlePreflight').disabled = Boolean(action.running);
       $('needleEmergency').disabled = !bridge.checked;
+      $('needleEmergencyRelease').disabled = !bridge.checked;
       $('needleStageList').innerHTML = flow.stages.map(stage => {
         const waitBadge = stage.wait_seconds ? `<small>固定等待 ${escapeHtml(stage.wait_seconds)} 秒</small>` : `<small>${stage.steps.length} 个步骤</small>`;
         const rows = stage.steps.map((step, index) => {
@@ -1006,7 +1050,7 @@
           return `<li class="needle-step ${isPose ? 'pose' : 'gesture'}">
             <div class="needle-step-main"><strong>${escapeHtml(step.label)}</strong><small>${detail}</small></div>
             <div class="needle-step-actions">
-              ${isPose ? `<button type="button" data-needle-action="record" data-stage="${escapeHtml(stage.id)}" data-step="${escapeHtml(step.id)}">覆盖</button>` : ''}
+              ${isPose ? `<button type="button" data-needle-action="record" data-stage="${escapeHtml(stage.id)}" data-step="${escapeHtml(step.id)}">覆盖</button><button type="button" data-needle-action="execute-step" data-stage="${escapeHtml(stage.id)}" data-step="${escapeHtml(step.id)}" ${step.recorded && !step.needs_reteach && action.enabled && armEnabled.left && !action.running ? '' : 'disabled'} title="只移动到当前左臂位姿；连接安全检查由后端实时执行">单步执行</button>` : ''}
               <button type="button" data-needle-action="move" data-direction="up" data-stage="${escapeHtml(stage.id)}" data-step="${escapeHtml(step.id)}" ${index === 0 ? 'disabled' : ''} aria-label="上移">↑</button>
               <button type="button" data-needle-action="move" data-direction="down" data-stage="${escapeHtml(stage.id)}" data-step="${escapeHtml(step.id)}" ${index === stage.steps.length - 1 ? 'disabled' : ''} aria-label="下移">↓</button>
               <button type="button" data-needle-action="delete" data-stage="${escapeHtml(stage.id)}" data-step="${escapeHtml(step.id)}">删除</button>
@@ -1026,6 +1070,80 @@
         </section>`;
       }).join('');
       $('needleStageList').querySelectorAll('button').forEach(button => {
+        if (action.running) button.disabled = true;
+      });
+    }
+
+    function renderTaskFlowStatus(status) {
+      if (!['tap','massage','cupping'].includes(currentMode)) return;
+      const flow = status.task_flows?.[currentMode];
+      const action = status.action || {};
+      const bridge = action.bridge || {};
+      const armEnabled = action.arm_enabled || { left:Boolean(action.robot_enabled), right:Boolean(action.robot_enabled) };
+      $('taskFlowTitle').textContent = flow?.name ? `${flow.name} · 独立关键帧流程` : '独立关键帧流程';
+      $('taskFlowEyebrow').textContent = `${modes[currentMode].index} · 真机演示`;
+      $('taskFlowCode').textContent = currentMode.toUpperCase();
+      document.querySelectorAll('.tap-only-gesture').forEach(item => { item.hidden = currentMode !== 'tap'; });
+      document.querySelectorAll('.massage-only-gesture').forEach(item => { item.hidden = true; });
+      document.querySelectorAll('.cupping-only-gesture').forEach(item => { item.hidden = currentMode !== 'cupping'; });
+      if (!flow) {
+        $('taskFlowStatus').textContent = '任务流程数据尚未加载。';
+        $('taskFlowExecute').disabled = true;
+        return;
+      }
+      const requiredArms = flow.arms || [];
+      const armsReady = requiredArms.every(arm => armEnabled[arm] === true);
+      const trackingReady = ['cupping', 'massage'].includes(currentMode) || status.tracking;
+      const ready = Boolean(flow.ready && bridge.ok && action.enabled && armsReady && trackingReady && !action.running);
+      const gateText = !flow.ready ? (flow.missing?.[0] || '关键帧尚未完成')
+        : !bridge.ok ? '机器人预检未通过'
+        : !armsReady ? '流程所用手臂尚未全部使能'
+        : !trackingReady ? 'AprilTag 定位未稳定'
+        : '';
+      $('taskFlowExecute').disabled = !ready;
+      $('taskFlowExecute').textContent = action.running ? '动作或示教进行中' : gateText || (currentMode === 'massage' ? '一键执行全部四阶段 · 按摩每位置 3 秒' : `一键执行${flow.name}`);
+      const usedArms = requiredArms.length ? requiredArms.map(arm => arm === 'left' ? '左臂' : '右臂').join('、') : '尚未记录';
+      const trackingNote = currentMode === 'cupping' ? '罐法执行不依赖 AprilTag；' : '';
+      $('taskFlowStatus').textContent = `${flow.ready ? '流程已完成示教' : `还需完善 ${flow.missing?.length || 0} 项`}；共 ${flow.total_steps} 个步骤、${flow.recorded_poses} 个姿态；使用手臂：${usedArms}；${trackingNote}速度 ${flow.speed}，加速度 ${flow.acceleration}；${action.message || ''}`;
+      $('taskFlowPreflight').disabled = Boolean(action.running);
+      $('taskFlowEmergency').disabled = !bridge.checked;
+      $('taskFlowEmergencyRelease').disabled = !bridge.checked;
+      $('taskFlowStageList').innerHTML = flow.stages.map(stage => {
+        const rows = stage.steps.map((step, index) => {
+          const isPose = step.type === 'pose';
+          const armLabel = step.arm === 'left' ? '左臂' : '右臂';
+          const canExecutePose = isPose && step.recorded && !step.needs_reteach && action.enabled && armEnabled[step.arm] === true && !action.running;
+          const detail = isPose
+            ? (step.recorded ? `${armLabel} · ${step.needs_reteach ? '旧反馈，需重新记录' : '已记录'} ${escapeHtml(step.recorded_at || '')} · ${escapeHtml(formatJoints(step.joints))}` : `${armLabel} · 尚未记录关节角`)
+            : `${step.arm === 'left' ? '左手' : '右手'}固定值：${escapeHtml((step.positions || []).join(' '))}`;
+          return `<li class="needle-step ${isPose ? 'pose' : 'gesture'}">
+            <div class="needle-step-main"><strong>${escapeHtml(step.label)}</strong><small>${detail}</small></div>
+            <div class="needle-step-actions">
+              ${isPose ? `<button type="button" data-task-action="record" data-stage="${escapeHtml(stage.id)}" data-step="${escapeHtml(step.id)}">覆盖</button><button type="button" data-task-action="execute-step" data-stage="${escapeHtml(stage.id)}" data-step="${escapeHtml(step.id)}" ${canExecutePose ? '' : 'disabled'} title="只执行到这个七关节位姿">逐步执行</button>` : ''}
+              <button type="button" data-task-action="move" data-direction="up" data-stage="${escapeHtml(stage.id)}" data-step="${escapeHtml(step.id)}" ${index === 0 ? 'disabled' : ''} aria-label="上移">↑</button>
+              <button type="button" data-task-action="move" data-direction="down" data-stage="${escapeHtml(stage.id)}" data-step="${escapeHtml(step.id)}" ${index === stage.steps.length - 1 ? 'disabled' : ''} aria-label="下移">↓</button>
+              <button type="button" data-task-action="delete" data-stage="${escapeHtml(stage.id)}" data-step="${escapeHtml(step.id)}">删除</button>
+            </div>
+          </li>`;
+        }).join('');
+        return `<section class="needle-stage" data-stage-id="${escapeHtml(stage.id)}">
+          <div class="needle-stage-head">
+            <div class="needle-stage-title"><span class="needle-stage-number">${stage.number}</span><div><strong>${escapeHtml(stage.label)}</strong><small>${stage.steps.length} 个步骤</small></div></div>
+            <div class="needle-add-actions">
+              <button type="button" data-task-action="add" data-task-type="pose" data-stage="${escapeHtml(stage.id)}">记录新姿态</button>
+              <button type="button" data-task-action="add" data-task-type="pinch" data-stage="${escapeHtml(stage.id)}">+ 捏</button>
+              ${currentMode === 'cupping'
+                ? `<button type="button" data-task-action="add" data-task-type="release" data-task-arm="left" data-stage="${escapeHtml(stage.id)}">+ 左手放</button><button type="button" data-task-action="add" data-task-type="release" data-task-arm="right" data-stage="${escapeHtml(stage.id)}">+ 右手放</button>`
+                : `<button type="button" data-task-action="add" data-task-type="release" data-stage="${escapeHtml(stage.id)}">+ 放</button>`}
+              ${currentMode === 'tap' ? `<button type="button" data-task-action="add" data-task-type="fist_ready" data-task-arm="left" data-stage="${escapeHtml(stage.id)}">+ 左手握拳准备</button><button type="button" data-task-action="add" data-task-type="fist" data-task-arm="left" data-stage="${escapeHtml(stage.id)}">+ 左手握拳</button><button type="button" data-task-action="add" data-task-type="fist_ready" data-task-arm="right" data-stage="${escapeHtml(stage.id)}">+ 右手握拳准备</button><button type="button" data-task-action="add" data-task-type="fist" data-task-arm="right" data-stage="${escapeHtml(stage.id)}">+ 右手握拳</button>` : ''}
+              ${currentMode === 'massage' ? `<button type="button" data-task-action="add" data-task-type="massage_grab" data-task-arm="right" data-stage="${escapeHtml(stage.id)}">+ 右手抓筋膜枪</button><button type="button" data-task-action="add" data-task-type="massage_on" data-task-arm="left" data-stage="${escapeHtml(stage.id)}">+ 左手开枪</button>` : ''}
+              ${currentMode === 'cupping' ? `<button type="button" data-task-action="add" data-task-type="grab" data-task-arm="left" data-stage="${escapeHtml(stage.id)}">+ 左手抓</button><button type="button" data-task-action="add" data-task-type="grab" data-task-arm="right" data-stage="${escapeHtml(stage.id)}">+ 右手抓</button>` : ''}
+            </div>
+          </div>
+          ${rows ? `<ol class="needle-step-list">${rows}</ol>` : '<div class="needle-empty">尚无步骤，请选择手臂后记录姿态或加入手势。</div>'}
+        </section>`;
+      }).join('');
+      $('taskFlowStageList').querySelectorAll('button').forEach(button => {
         if (action.running) button.disabled = true;
       });
     }
@@ -1069,6 +1187,7 @@
       setCheck('checkArm', bridge.checked ? (armReady ? `${selectedArmLabel}状态与 Arm_Tip 正常` : `${selectedArmLabel}状态或工具坐标异常`) : `${selectedArmLabel}状态待检查`, bridge.checked ? Boolean(armReady) : null);
       $('teachArmLabel').textContent = selected ? `${selected.name} · ${selectedArmLabel}` : '当前所选穴位';
       $('robotEmergency').disabled = !bridge.checked;
+      $('robotEmergencyRelease').disabled = !bridge.checked;
       // Keep both state controls available whenever the local service permits
       // robot control. The request itself reports a clear bridge error if the
       // hardware connection drops between status refreshes.
@@ -1108,13 +1227,26 @@
         $('streamPlaceholder').style.display = 'none';
       }
       renderNeedleStatus(status);
+      renderTaskFlowStatus(status);
     }
 
     async function refreshRobotBridge() {
       try {
         const response = await fetch(`${localRobotBase}/status.json`, { cache:'no-store', signal:AbortSignal.timeout(900) });
         if (!response.ok) throw new Error('status');
-        renderRobotStatus(await response.json());
+        const status = await response.json();
+        renderRobotStatus(status);
+        const action = status.action || {};
+        const bridge = action.bridge || {};
+        const now = Date.now();
+        if (!action.running && action.enabled && (!bridge.checked || !bridge.ok)
+            && !autoPreflightRunning && now - lastAutoPreflightAt >= 4000) {
+          autoPreflightRunning = true;
+          lastAutoPreflightAt = now;
+          fetch(`${localRobotBase}/api/preflight`, {
+            cache:'no-store', signal:AbortSignal.timeout(7000)
+          }).catch(() => {}).finally(() => { autoPreflightRunning = false; });
+        }
       } catch (_) {
         localRobotConnected = false;
         localRobotStatus = null;
@@ -1123,6 +1255,7 @@
         $('robotPreflight').disabled = false;
         document.querySelectorAll('.robot-arm-toggle').forEach(button => { button.disabled = true; });
         $('robotEmergency').disabled = true;
+        $('robotEmergencyRelease').disabled = true;
         ['checkLocal','checkVision','checkBridge','checkArm'].forEach(id => { $(id).classList.remove('ok','bad'); });
         $('checkLocal').textContent = '本机穴位服务未连接';
         $('checkVision').textContent = 'AprilTag 状态未知';
@@ -1140,8 +1273,15 @@
         $('needleExecute').disabled = true;
         $('needlePreflight').disabled = false;
         $('needleEmergency').disabled = true;
-        $('needleStatus').textContent = '尚未发现本机服务，无法读取或执行无针点穴七阶段流程。';
-        $('needleStageList').innerHTML = '<div class="needle-empty">连接本机服务后显示七阶段编辑器。</div>';
+        $('needleEmergencyRelease').disabled = true;
+        $('needleStatus').textContent = '尚未发现本机服务，无法读取或执行无针点穴五阶段流程。';
+        $('needleStageList').innerHTML = '<div class="needle-empty">连接本机服务后显示五阶段编辑器。</div>';
+        $('taskFlowExecute').disabled = true;
+        $('taskFlowPreflight').disabled = false;
+        $('taskFlowEmergency').disabled = true;
+        $('taskFlowEmergencyRelease').disabled = true;
+        $('taskFlowStatus').textContent = '尚未发现本机服务，无法读取或执行任务关键帧流程。';
+        $('taskFlowStageList').innerHTML = '<div class="needle-empty">连接本机服务后显示关键帧编辑器。</div>';
       }
     }
 
@@ -1172,24 +1312,51 @@
     $('voiceTextInput').addEventListener('keydown', event => {
       if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') answerVoiceQuestion($('voiceTextInput').value);
     });
+    function confirmRobotMotion(description, statusElement) {
+      const confirmed = window.confirm(
+        `机器人即将执行运动：\n\n${description}\n\n请确认人员与障碍物已离开机械臂运动范围。\n点击“确定”才会发送运动指令；点击“取消”不会执行。`
+      );
+      if (!confirmed && statusElement) statusElement.textContent = '已取消运动，没有向机器人发送任何运动指令。';
+      return confirmed;
+    }
     $('confirmVoiceAction').onclick = async () => {
       const proposal = pendingVoiceAction;
       if (!proposal) return;
+      const emergency = proposal.type === 'emergency_stop';
+      if (!emergency && !confirmRobotMotion(`语音请求：${proposal.label}`, $('voiceReply'))) {
+        setVoicePhase('已取消', '没有向机器人发送运动指令');
+        return;
+      }
       pendingVoiceAction = null;
       $('confirmVoiceAction').hidden = true;
-      const emergency = proposal.type === 'emergency_stop';
       $('voiceReply').textContent = emergency ? '正在向本机动作桥发送软件急停……' : `正在提交${proposal.label}动作，本机还会检查示教、视觉稳定和执行开关……`;
       setVoicePhase(emergency ? '发送急停' : '安全检查', emergency ? '请同时准备使用实体急停' : '尚未确认机械臂已经运动');
       try {
-        const response = await fetch(`${localRobotBase}${emergency ? '/api/emergency-stop' : '/api/execute'}`, {
+        const path = emergency
+          ? '/api/emergency-stop'
+          : proposal.type === 'execute_needle'
+            ? '/api/needle/execute'
+            : proposal.type === 'execute_task'
+              ? '/api/task/execute'
+              : '/api/execute';
+        const body = emergency
+          ? {}
+          : proposal.type === 'execute_task'
+            ? { task:proposal.task, confirmed:true }
+            : proposal.type === 'execute_needle'
+              ? { confirmed:true }
+              : { point:proposal.point, confirmed:true };
+        const response = await fetch(`${localRobotBase}${path}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(emergency ? {} : { point: proposal.point }),
+          body: JSON.stringify(body),
           signal: AbortSignal.timeout(3000)
         });
         const result = await response.json();
         if (!response.ok || !result.ok) throw new Error(result.error || '动作未被接受');
-        if (!emergency) $('robotPointSelect').value = proposal.point;
+        if (proposal.type === 'execute_acupoint') $('robotPointSelect').value = proposal.point;
+        if (proposal.type === 'execute_needle') { currentMode = 'needle'; render(); }
+        if (proposal.type === 'execute_task') { currentMode = proposal.task; render(); }
         $('voiceReply').textContent = result.action.message;
         setVoicePhase(emergency ? '急停已发送' : '已提交', '请继续观察机械臂与本机状态，随时准备实体急停');
       } catch (error) {
@@ -1246,6 +1413,23 @@
       }
       $('needlePreflight').disabled = false;
     };
+    $('taskFlowPreflight').onclick = async () => {
+      if (!localRobotConnected) {
+        $('taskFlowStatus').textContent = '本机服务尚未连接。';
+        return;
+      }
+      $('taskFlowPreflight').disabled = true;
+      $('taskFlowStatus').textContent = '正在检查双臂、灵巧手、ROS2 服务与动作桥……';
+      try {
+        const response = await fetch(`${localRobotBase}/api/preflight`, { cache:'no-store', signal:AbortSignal.timeout(7000) });
+        const result = await response.json();
+        localRobotStatus.action = { ...(localRobotStatus.action || {}), bridge: result };
+        renderRobotStatus(localRobotStatus);
+      } catch (_) {
+        $('taskFlowStatus').textContent = '连接检查失败：请确认机器人驱动、灵巧手与 8766 动作桥已启动。';
+      }
+      $('taskFlowPreflight').disabled = false;
+    };
     async function setRobotEnabled(arm, enabled) {
       if (!localRobotConnected) {
         $('robotStatus').textContent = '本机服务尚未连接，不能切换机器人使能。';
@@ -1256,6 +1440,7 @@
       const pending = enabled ? `正在使能${armLabel}……` : `正在让${armLabel}掉使能……`;
       $('robotStatus').textContent = pending;
       $('needleStatus').textContent = pending;
+      $('taskFlowStatus').textContent = pending;
       try {
         const response = await fetch(`${localRobotBase}${enabled ? '/api/robot-enable' : '/api/robot-disable'}`, {
           method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ arm }), signal:AbortSignal.timeout(7000)
@@ -1268,6 +1453,7 @@
         const message = `没有切换使能：${error.message || '本机服务连接失败'}`;
         $('robotStatus').textContent = message;
         $('needleStatus').textContent = message;
+        $('taskFlowStatus').textContent = message;
       }
       window.setTimeout(refreshRobotBridge, 300);
     }
@@ -1288,15 +1474,33 @@
     }
     $('robotEmergency').onclick = () => sendEmergency($('robotEmergency'), $('robotStatus'));
     $('needleEmergency').onclick = () => sendEmergency($('needleEmergency'), $('needleStatus'));
+    $('taskFlowEmergency').onclick = () => sendEmergency($('taskFlowEmergency'), $('taskFlowStatus'));
+    async function releaseEmergency(button, statusElement) {
+      button.disabled = true;
+      statusElement.textContent = '正在取消双臂软件急停；取消后机械臂仍需重新使能。';
+      try {
+        const response = await fetch(`${localRobotBase}/api/emergency-release`, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}', signal:AbortSignal.timeout(6000) });
+        const result = await response.json();
+        statusElement.textContent = result.ok ? result.action.message : `取消软件急停失败：${result.error}`;
+      } catch (_) {
+        statusElement.textContent = '无法连接取消急停接口。';
+      }
+      window.setTimeout(refreshRobotBridge, 300);
+    }
+    $('robotEmergencyRelease').onclick = () => releaseEmergency($('robotEmergencyRelease'), $('robotStatus'));
+    $('needleEmergencyRelease').onclick = () => releaseEmergency($('needleEmergencyRelease'), $('needleStatus'));
+    $('taskFlowEmergencyRelease').onclick = () => releaseEmergency($('taskFlowEmergencyRelease'), $('taskFlowStatus'));
     async function submitRobotAction(path, pendingText, failurePrefix) {
       if (!localRobotConnected) {
         $('robotStatus').textContent = '本机服务尚未连接，没有提交任何动作。';
         return;
       }
+      const pointName = $('robotPointSelect').selectedOptions[0]?.textContent || $('robotPointSelect').value;
+      if (!confirmRobotMotion(`${pointName}点穴动作`, $('robotStatus'))) return;
       $('robotExecute').disabled = true;
       $('robotStatus').textContent = pendingText;
       try {
-        const response = await fetch(`${localRobotBase}${path}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ point:$('robotPointSelect').value }) });
+        const response = await fetch(`${localRobotBase}${path}`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ point:$('robotPointSelect').value, confirmed:true }) });
         const result = await response.json();
         $('robotStatus').textContent = result.ok ? result.action.message : `${failurePrefix}：${result.error}`;
       } catch (_) {
@@ -1310,12 +1514,17 @@
         $('needleStatus').textContent = '本机服务尚未连接，没有提交任何操作。';
         return;
       }
+      if (['/api/needle/execute-step', '/api/needle/execute'].includes(path)) {
+        const description = path.endsWith('execute-step') ? '针灸当前关键帧单步动作' : '针灸五阶段完整动作';
+        if (!confirmRobotMotion(description, $('needleStatus'))) return;
+      }
       $('needleStatus').textContent = pendingText;
       $('needleStageList').querySelectorAll('button').forEach(button => { button.disabled = true; });
       $('needleExecute').disabled = true;
       try {
+        const requestBody = ['/api/needle/execute-step', '/api/needle/execute'].includes(path) ? { ...body, confirmed:true } : body;
         const response = await fetch(`${localRobotBase}${path}`, {
-          method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body),
+          method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(requestBody),
           signal:AbortSignal.timeout(path.endsWith('/execute') ? 5000 : 7000)
         });
         const result = await response.json();
@@ -1338,6 +1547,8 @@
         submitNeedleRequest('/api/needle/add-step', { stage, type }, label);
       } else if (action === 'record') {
         submitNeedleRequest('/api/needle/record-step', { stage, step }, '正在覆盖记录左臂当前关节角……');
+      } else if (action === 'execute-step') {
+        submitNeedleRequest('/api/needle/execute-step', { stage, step }, '正在执行当前左臂位姿……');
       } else if (action === 'move') {
         submitNeedleRequest('/api/needle/move-step', { stage, step, direction:button.dataset.direction }, '正在调整阶段内部执行顺序……');
       } else if (action === 'delete') {
@@ -1346,8 +1557,64 @@
       }
     });
     $('needleExecute').onclick = () => submitNeedleRequest(
-      '/api/needle/execute', {}, '正在提交无针点穴七阶段演示……'
+      '/api/needle/execute', {}, '正在提交无针点穴五阶段演示……'
     );
+    async function submitTaskFlowRequest(path, body, pendingText) {
+      if (!localRobotConnected) {
+        $('taskFlowStatus').textContent = '本机服务尚未连接，没有提交任何操作。';
+        return;
+      }
+      if (['/api/task/execute-step', '/api/task/execute'].includes(path)) {
+        const taskName = modes[currentMode]?.stage || '当前任务';
+        const description = path.endsWith('execute-step') ? `${taskName}当前关键帧逐步动作` : `${taskName}完整关键帧流程`;
+        if (!confirmRobotMotion(description, $('taskFlowStatus'))) return;
+      }
+      $('taskFlowStatus').textContent = pendingText;
+      $('taskFlowStageList').querySelectorAll('button').forEach(button => { button.disabled = true; });
+      $('taskFlowExecute').disabled = true;
+      try {
+        const requestBody = ['/api/task/execute-step', '/api/task/execute'].includes(path) ? { ...body, confirmed:true } : body;
+        const response = await fetch(`${localRobotBase}${path}`, {
+          method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(requestBody),
+          signal:AbortSignal.timeout(path.endsWith('/execute') ? 5000 : 7000)
+        });
+        const result = await response.json();
+        if (!response.ok || !result.ok) throw new Error(result.error || '操作失败');
+        $('taskFlowStatus').textContent = result.action.message;
+      } catch (error) {
+        $('taskFlowStatus').textContent = `操作未完成：${error.message || '本机服务连接失败'}`;
+      }
+      window.setTimeout(refreshRobotBridge, 250);
+    }
+    $('taskFlowStageList').addEventListener('click', event => {
+      const button = event.target.closest('button[data-task-action]');
+      if (!button || button.disabled || !['tap','massage','cupping'].includes(currentMode)) return;
+      const action = button.dataset.taskAction;
+      const stage = button.dataset.stage;
+      const step = button.dataset.step;
+      const task = currentMode;
+      const arm = button.dataset.taskArm || $('taskFlowArm').value;
+      const armLabel = arm === 'right' ? '右臂' : '左臂';
+      if (action === 'add') {
+        const type = button.dataset.taskType;
+        const gestureLabels = { pinch:'捏', release:'放', fist_ready:'握拳准备', fist:'握拳', grab:'抓', massage_grab:'抓筋膜枪', massage_on:'开枪' };
+        const label = type === 'pose' ? `正在读取${armLabel}当前关节角并追加姿态……` : `正在为${armLabel}追加固定“${gestureLabels[type] || type}”手势……`;
+        submitTaskFlowRequest('/api/task/add-step', { task, stage, type, arm }, label);
+      } else if (action === 'record') {
+        submitTaskFlowRequest('/api/task/record-step', { task, stage, step }, '正在覆盖记录该关键帧对应手臂的当前关节角……');
+      } else if (action === 'execute-step') {
+        submitTaskFlowRequest('/api/task/execute-step', { task, stage, step }, '正在提交该关键帧的逐步执行请求……');
+      } else if (action === 'move') {
+        submitTaskFlowRequest('/api/task/move-step', { task, stage, step, direction:button.dataset.direction }, '正在调整阶段内部执行顺序……');
+      } else if (action === 'delete') {
+        if (!window.confirm('确认删除这个任务步骤？')) return;
+        submitTaskFlowRequest('/api/task/delete-step', { task, stage, step }, '正在删除步骤……');
+      }
+    });
+    $('taskFlowExecute').onclick = () => {
+      if (!['tap','massage','cupping'].includes(currentMode)) return;
+      submitTaskFlowRequest('/api/task/execute', { task:currentMode }, `正在提交${modes[currentMode].stage}关键帧流程……`);
+    };
     document.querySelectorAll('.teach-delete').forEach(button => button.onclick = async () => {
       if (!localRobotConnected) {
         $('robotStatus').textContent = '本机示教服务尚未连接，没有删除关键帧。';
@@ -1404,7 +1671,13 @@
       proposal: (proposal) => {
         pendingVoiceAction = proposal;
         $('confirmVoiceAction').hidden = !proposal;
-        if (proposal) $('confirmVoiceAction').textContent = proposal.type === 'emergency_stop' ? '确认发送软件急停' : `确认让机械臂指向${proposal.label}`;
+        if (proposal) $('confirmVoiceAction').textContent = proposal.type === 'emergency_stop'
+          ? '确认发送软件急停'
+          : proposal.type === 'execute_needle'
+            ? '确认开始无针点穴'
+            : proposal.type === 'execute_task'
+              ? `确认开始${proposal.label}`
+              : `确认让机械臂指向${proposal.label}`;
       }
     };
 
